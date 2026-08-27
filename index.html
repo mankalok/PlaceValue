@@ -1,0 +1,640 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <title>四位數位值：數粒與算珠教學 App</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      touch-action: manipulation;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+
+    body {
+      margin: 0;
+      padding: 0;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f4f7f6;
+      display: flex;
+      flex-direction: column;
+      height: 100vh;
+      overflow: hidden;
+    }
+
+    /* 頂部列 */
+    header {
+      background-color: #2c3e50;
+      color: white;
+      padding: 10px 20px;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
+      z-index: 10;
+    }
+
+    h1 {
+      margin: 0;
+      font-size: 1.3rem;
+    }
+
+    .header-controls {
+      display: flex;
+      gap: 8px;
+      align-items: center;
+    }
+
+    .btn {
+      color: white;
+      border: none;
+      padding: 6px 12px;
+      border-radius: 6px;
+      font-size: 0.9rem;
+      cursor: pointer;
+      font-weight: bold;
+      transition: background 0.2s, transform 0.1s;
+    }
+
+    .btn-abacus-toggle { background-color: #d35400; }
+    .btn-test { background-color: #27ae60; }
+    .btn-reset { background-color: #e74c3c; }
+    .btn:active { transform: scale(0.95); opacity: 0.9; }
+
+    /* 上方拉取區：靠右對齊 (配合個位欄位) */
+    .top-panel {
+      background-color: #e8f4f8;
+      padding: 8px 20px;
+      display: flex;
+      justify-content: flex-end;
+      align-items: center;
+      border-bottom: 2px solid #bdc3c7;
+      min-height: 55px;
+      /* 右邊留出側邊欄寬度 + 邊距，確保對準「個位」 */
+      padding-right: calc(200px + 20px); 
+    }
+
+    .source-wrapper {
+      display: flex;
+      align-items: center;
+      gap: 15px;
+    }
+
+    .source-item {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      cursor: grab;
+      touch-action: none;
+      background: #fff;
+      padding: 6px 12px;
+      border-radius: 8px;
+      border: 1px solid #ccc;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+    }
+
+    .source-hint {
+      font-size: 0.9rem;
+      color: #2c3e50;
+      font-weight: bold;
+    }
+
+    /* 嚴格 1:10:100:1000 比例視覺樣式 */
+    .cube-unit-3d {
+      width: 12px;
+      height: 12px;
+      background: #f1c40f;
+      border-radius: 1px;
+      box-shadow: inset -1px -1px 0 #d4ac0d, inset 1px 1px 0 #f9e79f, 1px 1px 2px rgba(0,0,0,0.15);
+      border: 0.5px solid #b7950b;
+      margin: 2px;
+      flex-shrink: 0;
+    }
+
+    .rod-ten-3d {
+      width: 12px;
+      height: 120px;
+      display: flex;
+      flex-direction: column;
+      border-radius: 1px;
+      box-shadow: inset -1px 0 0 #229954, inset 1px 0 0 #abebc6, 1px 1px 3px rgba(0,0,0,0.15);
+      border: 0.5px solid #1e8449;
+      background: #2ecc71;
+      margin: 3px;
+      flex-shrink: 0;
+    }
+
+    .rod-segment-3d {
+      height: 12px;
+      width: 100%;
+      border-bottom: 0.5px solid #1e8449;
+      box-sizing: border-box;
+    }
+    .rod-segment-3d:last-child { border-bottom: none; }
+
+    .flat-hundred-3d {
+      width: 120px;
+      height: 120px;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      background: #3498db;
+      border: 1px solid #1b4f72;
+      border-radius: 1px;
+      box-shadow: inset -2px -2px 0 #2471a3, inset 2px 2px 0 #aed6f1, 2px 2px 4px rgba(0,0,0,0.2);
+      margin: 4px;
+      flex-shrink: 0;
+    }
+
+    .flat-segment-3d { border: 0.5px solid #2980b9; }
+
+    .cube-thousand-svg {
+      width: 150px;
+      height: 150px;
+      filter: drop-shadow(2px 3px 4px rgba(0,0,0,0.25));
+      margin: 2px;
+      flex-shrink: 0;
+    }
+
+    /* 算珠樣式 */
+    .abacus-bead {
+      width: 60px;
+      height: 20px;
+      background: radial-gradient(circle at 35% 30%, #ec7063, #c0392b 70%, #922b21);
+      border-radius: 10px;
+      border: 1px solid #7b241c;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.25);
+      z-index: 2;
+      margin: 2px 0;
+      flex-shrink: 0;
+    }
+
+    /* 主體區域 */
+    .main-layout {
+      flex: 1;
+      display: flex;
+      overflow: hidden;
+    }
+
+    .place-value-container {
+      flex: 1;
+      display: flex;
+      padding: 10px;
+      gap: 10px;
+      background-color: #ffffff;
+    }
+
+    .column {
+      flex: 1;
+      border: 2px dashed #bdc3c7;
+      border-radius: 10px;
+      display: flex;
+      flex-direction: column;
+      background-color: #fafafa;
+      position: relative;
+    }
+
+    .column.drag-over {
+      background-color: #feefc3;
+      border-style: solid;
+      border-color: #f39c12;
+    }
+
+    .col-header {
+      text-align: center;
+      padding: 8px 0;
+      font-weight: bold;
+      font-size: 1.25rem;
+      border-bottom: 2px solid #ccc;
+    }
+
+    .col-header.th { background-color: #f3e5f5; color: #6a1b9a; }
+    .col-header.h  { background-color: #e1f5fe; color: #0277bd; }
+    .col-header.t  { background-color: #e8f5e9; color: #2e7d32; }
+    .col-header.u  { background-color: #fff8e1; color: #f57f17; }
+
+    /* 上格：數粒區 */
+    .cell-blocks {
+      flex: 1.3;
+      padding: 8px;
+      display: flex;
+      flex-wrap: wrap-reverse;
+      align-content: flex-start;
+      justify-content: center;
+      align-items: flex-end;
+      gap: 4px;
+      overflow-y: auto;
+      background-color: #ffffff;
+    }
+
+    /* 下格：算珠區 (預設隱藏) */
+    .cell-abacus {
+      flex: 1;
+      position: relative;
+      display: none;
+      flex-direction: column-reverse;
+      align-items: center;
+      padding: 10px 0;
+      overflow-y: auto;
+      background-color: #fcfcfc;
+      border-top: 2px dashed #ccc;
+    }
+
+    .abacus-wire {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      left: 50%;
+      width: 6px;
+      background: linear-gradient(90deg, #bdc3c7, #7f8c8d, #95a5a6);
+      transform: translateX(-50%);
+      z-index: 1;
+      border-radius: 3px;
+    }
+
+    .col-footer {
+      text-align: center;
+      padding: 8px 0;
+      font-size: 1.8rem;
+      font-weight: bold;
+      border-top: 1px solid #ddd;
+      background-color: #fff;
+    }
+
+    /* 側邊資訊欄 */
+    .sidebar {
+      width: 200px;
+      background-color: #34495e;
+      color: white;
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+      box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+    }
+
+    .sidebar-title {
+      font-size: 1rem;
+      color: #bdc3c7;
+      margin-bottom: 6px;
+    }
+
+    .sidebar-value {
+      font-size: 2.3rem;
+      font-weight: bold;
+      color: #f1c40f;
+      margin-bottom: 25px;
+      word-break: break-all;
+      text-align: center;
+    }
+
+    .sidebar-chinese {
+      font-size: 1.5rem;
+      font-weight: bold;
+      color: #2ecc71;
+      text-align: center;
+      line-height: 1.4;
+    }
+
+    /* 拖拉跟隨元素 */
+    .dragging-ghost {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0.85;
+      transform: translate(-50%, -50%);
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>四位數位值：數粒與算珠教學 App</h1>
+    <div class="header-controls">
+      <button class="btn btn-abacus-toggle" onclick="toggleAbacusPanel()">顯示/隱藏算珠區</button>
+      <button class="btn btn-test" onclick="quickAdd(1)">+1</button>
+      <button class="btn btn-test" onclick="quickAdd(10)">+10</button>
+      <button class="btn btn-test" onclick="quickAdd(100)">+100</button>
+      <button class="btn btn-test" onclick="quickAdd(1000)">+1000</button>
+      <button class="btn btn-reset" onclick="resetAll()">重置</button>
+    </div>
+  </header>
+
+  <!-- 上方拖拉來源區 (靠右對齊【個位】欄位) -->
+  <div class="top-panel" id="topPanel">
+    <div class="source-wrapper">
+      <div class="source-item" id="sourceCube">
+        <div class="cube-unit-3d"></div>
+        <div class="source-hint">拉數粒到【個位】</div>
+      </div>
+      <div class="source-item" id="sourceBead">
+        <div class="abacus-bead" style="width: 35px; height: 12px; margin: 0;"></div>
+        <div class="source-hint">拉算珠到【個位】</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="main-layout">
+    <div class="place-value-container">
+      <!-- 千位 -->
+      <div class="column" id="col-thousands" data-type="thousands">
+        <div class="col-header th">千位</div>
+        <div class="cell-blocks" id="blocks-thousands"></div>
+        <div class="cell-abacus" id="abacus-thousands">
+          <div class="abacus-wire"></div>
+        </div>
+        <div class="col-footer" id="val-thousands" style="color: #6a1b9a;">0</div>
+      </div>
+      <!-- 百位 -->
+      <div class="column" id="col-hundreds" data-type="hundreds">
+        <div class="col-header h">百位</div>
+        <div class="cell-blocks" id="blocks-hundreds"></div>
+        <div class="cell-abacus" id="abacus-hundreds">
+          <div class="abacus-wire"></div>
+        </div>
+        <div class="col-footer" id="val-hundreds" style="color: #0277bd;">0</div>
+      </div>
+      <!-- 十位 -->
+      <div class="column" id="col-tens" data-type="tens">
+        <div class="col-header t">十位</div>
+        <div class="cell-blocks" id="blocks-tens"></div>
+        <div class="cell-abacus" id="abacus-tens">
+          <div class="abacus-wire"></div>
+        </div>
+        <div class="col-footer" id="val-tens" style="color: #2e7d32;">0</div>
+      </div>
+      <!-- 個位 -->
+      <div class="column" id="col-units" data-type="units">
+        <div class="col-header u">個位</div>
+        <div class="cell-blocks" id="blocks-units"></div>
+        <div class="cell-abacus" id="abacus-units">
+          <div class="abacus-wire"></div>
+        </div>
+        <div class="col-footer" id="val-units" style="color: #f57f17;">0</div>
+      </div>
+    </div>
+
+    <!-- 側邊顯示欄 -->
+    <div class="sidebar">
+      <div class="sidebar-title">數字顯示</div>
+      <div class="sidebar-value" id="displayNumber">0</div>
+      <div class="sidebar-title">中文讀法</div>
+      <div class="sidebar-chinese" id="displayChinese">零</div>
+    </div>
+  </div>
+
+  <script>
+    let counts = { thousands: 0, hundreds: 0, tens: 0, units: 0 };
+    let activeGhost = null;
+    let dragType = 'block';
+    let showAbacus = false;
+
+    window.onload = () => {
+      setupDragSource('sourceCube', 'block');
+      setupDragSource('sourceBead', 'bead');
+      renderUI();
+    };
+
+    function toggleAbacusPanel() {
+      showAbacus = !showAbacus;
+      const abacusCells = document.querySelectorAll('.cell-abacus');
+      abacusCells.forEach(el => {
+        el.style.display = showAbacus ? 'flex' : 'none';
+      });
+    }
+
+    // 使用 Pointer Events 全面支援 iPad 與觸控螢幕
+    function setupDragSource(elementId, type) {
+      const el = document.getElementById(elementId);
+      el.addEventListener('pointerdown', (e) => handlePointerDown(e, type));
+    }
+
+    function quickAdd(val) {
+      counts.units += val;
+      checkCarries();
+      renderUI();
+    }
+
+    function handlePointerDown(e, type) {
+      e.preventDefault();
+      dragType = type;
+      
+      const target = e.currentTarget;
+      target.setPointerCapture(e.pointerId);
+
+      startDrag(e.clientX, e.clientY);
+
+      const onPointerMove = (ev) => {
+        ev.preventDefault();
+        if (!activeGhost) return;
+        moveGhost(ev.clientX, ev.clientY);
+      };
+
+      const onPointerUp = (ev) => {
+        ev.preventDefault();
+        dropItem(ev.clientX, ev.clientY);
+        target.releasePointerCapture(e.pointerId);
+        target.removeEventListener('pointermove', onPointerMove);
+        target.removeEventListener('pointerup', onPointerUp);
+        target.removeEventListener('pointercancel', onPointerUp);
+      };
+
+      target.addEventListener('pointermove', onPointerMove);
+      target.addEventListener('pointerup', onPointerUp);
+      target.addEventListener('pointercancel', onPointerUp);
+    }
+
+    function startDrag(x, y) {
+      activeGhost = document.createElement('div');
+      activeGhost.className = `dragging-ghost ${dragType === 'bead' ? 'abacus-bead' : 'cube-unit-3d'}`;
+      activeGhost.style.left = `${x}px`;
+      activeGhost.style.top = `${y}px`;
+      document.body.appendChild(activeGhost);
+    }
+
+    function moveGhost(x, y) {
+      if (!activeGhost) return;
+      activeGhost.style.left = `${x}px`;
+      activeGhost.style.top = `${y}px`;
+
+      const cols = document.querySelectorAll('.column');
+      cols.forEach(col => {
+        const rect = col.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          col.classList.add('drag-over');
+        } else {
+          col.classList.remove('drag-over');
+        }
+      });
+    }
+
+    function dropItem(x, y) {
+      if (activeGhost) {
+        activeGhost.remove();
+        activeGhost = null;
+      }
+
+      const cols = document.querySelectorAll('.column');
+      cols.forEach(col => {
+        col.classList.remove('drag-over');
+        const rect = col.getBoundingClientRect();
+        if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
+          const colType = col.getAttribute('data-type');
+          // 限制：只有拖放到【個位】才會生效，其餘位置無反應
+          if (colType === 'units') {
+            counts.units += 1;
+            checkCarries();
+            renderUI();
+          }
+        }
+      });
+    }
+
+    function checkCarries() {
+      while (counts.units >= 10) { counts.units -= 10; counts.tens += 1; }
+      while (counts.tens >= 10) { counts.tens -= 10; counts.hundreds += 1; }
+      while (counts.hundreds >= 10) { counts.hundreds -= 10; counts.thousands += 1; }
+      if (counts.thousands > 9) counts.thousands = 9;
+    }
+
+    function createRodTen() {
+      const rod = document.createElement('div');
+      rod.className = 'rod-ten-3d';
+      for (let i = 0; i < 10; i++) {
+        const seg = document.createElement('div');
+        seg.className = 'rod-segment-3d';
+        rod.appendChild(seg);
+      }
+      return rod;
+    }
+
+    function createFlatHundred() {
+      const flat = document.createElement('div');
+      flat.className = 'flat-hundred-3d';
+      for (let i = 0; i < 100; i++) {
+        const seg = document.createElement('div');
+        seg.className = 'flat-segment-3d';
+        flat.appendChild(seg);
+      }
+      return flat;
+    }
+
+    function createCubeThousandSVG() {
+      const container = document.createElement('div');
+      container.className = 'cube-thousand-svg';
+      
+      let gridFront = '';
+      for(let i=1; i<10; i++) {
+        let p = i * 9;
+        gridFront += `<line x1="${p}" y1="30" x2="${p}" y2="120" stroke="#512e5f" stroke-width="0.8"/>`;
+        gridFront += `<line x1="0" y1="${30+p}" x2="90" y2="${30+p}" stroke="#512e5f" stroke-width="0.8"/>`;
+      }
+
+      let gridTop = '';
+      for(let i=1; i<10; i++) {
+        let p = i * 9;
+        let offset = i * 3;
+        gridTop += `<line x1="${p}" y1="30" x2="${p+30}" y2="0" stroke="#6c3483" stroke-width="0.8"/>`;
+        gridTop += `<line x1="${offset}" y1="${30-offset}" x2="${90+offset}" y2="${30-offset}" stroke="#6c3483" stroke-width="0.8"/>`;
+      }
+
+      let gridSide = '';
+      for(let i=1; i<10; i++) {
+        let p = i * 9;
+        let offset = i * 3;
+        gridSide += `<line x1="90" y1="${30+p}" x2="120" y2="${p}" stroke="#4a235a" stroke-width="0.8"/>`;
+        gridSide += `<line x1="${90+offset}" y1="${30-offset}" x2="${90+offset}" y2="${120-offset}" stroke="#4a235a" stroke-width="0.8"/>`;
+      }
+
+      container.innerHTML = `
+        <svg viewBox="0 0 125 125" width="100%" height="100%">
+          <polygon points="0,30 30,0 120,0 90,30" fill="#af7ac5" stroke="#4a235a" stroke-width="1.2"/>
+          ${gridTop}
+          <polygon points="90,30 120,0 120,90 90,120" fill="#76448a" stroke="#4a235a" stroke-width="1.2"/>
+          ${gridSide}
+          <polygon points="0,30 90,30 90,120 0,120" fill="#8e44ad" stroke="#4a235a" stroke-width="1.2"/>
+          ${gridFront}
+        </svg>
+      `;
+      return container;
+    }
+
+    function renderUI() {
+      const cols = ['thousands', 'hundreds', 'tens', 'units'];
+
+      cols.forEach(type => {
+        const blocksDiv = document.getElementById(`blocks-${type}`);
+        blocksDiv.innerHTML = '';
+        const count = counts[type];
+
+        for (let i = 0; i < count; i++) {
+          if (type === 'units') {
+            const u = document.createElement('div');
+            u.className = 'cube-unit-3d';
+            blocksDiv.appendChild(u);
+          } else if (type === 'tens') {
+            blocksDiv.appendChild(createRodTen());
+          } else if (type === 'hundreds') {
+            blocksDiv.appendChild(createFlatHundred());
+          } else if (type === 'thousands') {
+            blocksDiv.appendChild(createCubeThousandSVG());
+          }
+        }
+
+        const abacusDiv = document.getElementById(`abacus-${type}`);
+        abacusDiv.innerHTML = '<div class="abacus-wire"></div>';
+        for (let i = 0; i < count; i++) {
+          const bead = document.createElement('div');
+          bead.className = 'abacus-bead';
+          abacusDiv.appendChild(bead);
+        }
+      });
+
+      document.getElementById('val-units').innerText = counts.units;
+      document.getElementById('val-tens').innerText = counts.tens * 10;
+      document.getElementById('val-hundreds').innerText = counts.hundreds * 100;
+      document.getElementById('val-thousands').innerText = counts.thousands * 1000;
+
+      updateSidebar();
+    }
+
+    function updateSidebar() {
+      const total = counts.thousands * 1000 + counts.hundreds * 100 + counts.tens * 10 + counts.units;
+      document.getElementById('displayNumber').innerText = total;
+      document.getElementById('displayChinese').innerText = numberToChinese(total);
+    }
+
+    function numberToChinese(num) {
+      if (num === 0) return '零';
+      const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
+      const units = ['', '十', '百', '千'];
+      
+      let str = num.toString();
+      let len = str.length;
+      let result = '';
+      let zero = false;
+
+      for (let i = 0; i < len; i++) {
+        let n = parseInt(str[i]);
+        if (n !== 0) {
+          if (zero) {
+            result += '零';
+            zero = false;
+          }
+          result += digits[n] + units[len - 1 - i];
+        } else {
+          zero = true;
+        }
+      }
+      return result;
+    }
+
+    function resetAll() {
+      counts = { thousands: 0, hundreds: 0, tens: 0, units: 0 };
+      renderUI();
+    }
+  </script>
+</body>
+</html>
