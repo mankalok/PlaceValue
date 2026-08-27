@@ -475,6 +475,14 @@
     }
 
     function quickAdd(val) {
+      // 計算當前總值
+      let currentTotal = counts.thousands * 1000 + counts.hundreds * 100 + counts.tens * 10 + counts.units;
+      
+      // 若加上 val 後超過上限 9999，則禁止增加
+      if (currentTotal + val > 9999) {
+        return;
+      }
+
       counts.units += val;
       checkCarries();
       renderUI();
@@ -546,9 +554,7 @@
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
           const colType = col.getAttribute('data-type');
           if (colType === 'units') {
-            counts.units += 1;
-            checkCarries();
-            renderUI();
+            quickAdd(1); // 統一使用 quickAdd(1) 以便享有 9999 上限檢查
           }
         }
       });
@@ -558,7 +564,14 @@
       while (counts.units >= 10) { counts.units -= 10; counts.tens += 1; }
       while (counts.tens >= 10) { counts.tens -= 10; counts.hundreds += 1; }
       while (counts.hundreds >= 10) { counts.hundreds -= 10; counts.thousands += 1; }
-      if (counts.thousands > 9) counts.thousands = 9;
+      
+      // 防止極端情況超越 9999
+      if (counts.thousands > 9) {
+        counts.thousands = 9;
+        counts.hundreds = 9;
+        counts.tens = 9;
+        counts.units = 9;
+      }
     }
 
     function createRodTen() {
