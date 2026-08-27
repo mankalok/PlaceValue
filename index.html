@@ -673,6 +673,11 @@
       const digits = ['零', '一', '二', '三', '四', '五', '六', '七', '八', '九'];
       const units = ['', '十', '百', '千'];
       
+      // 特別處理 10 ~ 19 (兩位數，且十位為 1 時，省略前面的「一」)
+      if (num >= 10 && num <= 19) {
+        return num === 10 ? '十' : '十' + digits[num % 10];
+      }
+
       let str = num.toString();
       let len = str.length;
       let result = '';
