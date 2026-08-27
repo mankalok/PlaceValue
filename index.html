@@ -2,7 +2,7 @@
 <html lang="zh-HK">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>四位數位值：數粒與算珠教學 App</title>
   <style>
     * {
@@ -12,46 +12,56 @@
       -webkit-user-select: none;
     }
 
-    body {
+    html, body {
+      width: 100%;
+      min-height: 100vh;
+      min-height: 100dvh; /* 修正 iOS Safari 網址列遮擋問題 */
       margin: 0;
       padding: 0;
       font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
       background-color: #f4f7f6;
+    }
+
+    body {
       display: flex;
       flex-direction: column;
-      height: 100vh;
-      overflow: hidden;
+      overflow-x: hidden;
+      overflow-y: auto; /* 允許內容多時向下滾動 */
     }
 
     /* 頂部列 */
     header {
       background-color: #2c3e50;
       color: white;
-      padding: 10px 20px;
+      padding: 10px 15px;
       display: flex;
+      flex-wrap: wrap; /* 允許小螢幕換行 */
       justify-content: space-between;
       align-items: center;
+      gap: 10px;
       box-shadow: 0 2px 5px rgba(0,0,0,0.1);
       z-index: 10;
     }
 
     h1 {
       margin: 0;
-      font-size: 1.3rem;
+      font-size: 1.2rem;
+      white-space: nowrap;
     }
 
     .header-controls {
       display: flex;
-      gap: 8px;
+      flex-wrap: wrap;
+      gap: 6px;
       align-items: center;
     }
 
     .btn {
       color: white;
       border: none;
-      padding: 6px 12px;
+      padding: 6px 10px;
       border-radius: 6px;
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       cursor: pointer;
       font-weight: bold;
       transition: background 0.2s, transform 0.1s;
@@ -62,40 +72,39 @@
     .btn-reset { background-color: #e74c3c; }
     .btn:active { transform: scale(0.95); opacity: 0.9; }
 
-    /* 上方拉取區：靠右對齊 (配合個位欄位) */
+    /* 上方拉取區：動態對齊 */
     .top-panel {
       background-color: #e8f4f8;
-      padding: 8px 20px;
+      padding: 8px 15px;
       display: flex;
       justify-content: flex-end;
       align-items: center;
       border-bottom: 2px solid #bdc3c7;
-      min-height: 55px;
-      /* 右邊留出側邊欄寬度 + 邊距，確保對準「個位」 */
-      padding-right: calc(200px + 20px); 
+      min-height: 50px;
     }
 
     .source-wrapper {
       display: flex;
       align-items: center;
-      gap: 15px;
+      gap: 12px;
+      flex-wrap: wrap;
     }
 
     .source-item {
       display: flex;
       align-items: center;
-      gap: 8px;
+      gap: 6px;
       cursor: grab;
       touch-action: none;
       background: #fff;
-      padding: 6px 12px;
+      padding: 5px 10px;
       border-radius: 8px;
       border: 1px solid #ccc;
       box-shadow: 0 2px 4px rgba(0,0,0,0.05);
     }
 
     .source-hint {
-      font-size: 0.9rem;
+      font-size: 0.85rem;
       color: #2c3e50;
       font-weight: bold;
     }
@@ -134,8 +143,8 @@
     .rod-segment-3d:last-child { border-bottom: none; }
 
     .flat-hundred-3d {
-      width: 120px;
-      height: 120px;
+      width: 100px;
+      height: 100px;
       display: grid;
       grid-template-columns: repeat(10, 1fr);
       grid-template-rows: repeat(10, 1fr);
@@ -150,8 +159,8 @@
     .flat-segment-3d { border: 0.5px solid #2980b9; }
 
     .cube-thousand-svg {
-      width: 150px;
-      height: 150px;
+      width: 120px;
+      height: 120px;
       filter: drop-shadow(2px 3px 4px rgba(0,0,0,0.25));
       margin: 2px;
       flex-shrink: 0;
@@ -159,8 +168,8 @@
 
     /* 算珠樣式 */
     .abacus-bead {
-      width: 60px;
-      height: 20px;
+      width: 50px;
+      height: 18px;
       background: radial-gradient(circle at 35% 30%, #ec7063, #c0392b 70%, #922b21);
       border-radius: 10px;
       border: 1px solid #7b241c;
@@ -170,23 +179,26 @@
       flex-shrink: 0;
     }
 
-    /* 主體區域 */
+    /* 主體區域：彈性自適應 */
     .main-layout {
       flex: 1;
       display: flex;
-      overflow: hidden;
+      flex-direction: row;
+      min-height: 0;
     }
 
     .place-value-container {
       flex: 1;
       display: flex;
-      padding: 10px;
-      gap: 10px;
+      padding: 8px;
+      gap: 6px;
       background-color: #ffffff;
+      overflow-x: auto;
     }
 
     .column {
       flex: 1;
+      min-width: 70px;
       border: 2px dashed #bdc3c7;
       border-radius: 10px;
       display: flex;
@@ -203,9 +215,9 @@
 
     .col-header {
       text-align: center;
-      padding: 8px 0;
+      padding: 6px 0;
       font-weight: bold;
-      font-size: 1.25rem;
+      font-size: 1.1rem;
       border-bottom: 2px solid #ccc;
     }
 
@@ -216,8 +228,9 @@
 
     /* 上格：數粒區 */
     .cell-blocks {
-      flex: 1.3;
-      padding: 8px;
+      flex: 1;
+      min-height: 180px;
+      padding: 6px;
       display: flex;
       flex-wrap: wrap-reverse;
       align-content: flex-start;
@@ -231,11 +244,12 @@
     /* 下格：算珠區 (預設隱藏) */
     .cell-abacus {
       flex: 1;
+      min-height: 140px;
       position: relative;
       display: none;
       flex-direction: column-reverse;
       align-items: center;
-      padding: 10px 0;
+      padding: 8px 0;
       overflow-y: auto;
       background-color: #fcfcfc;
       border-top: 2px dashed #ccc;
@@ -246,7 +260,7 @@
       top: 0;
       bottom: 0;
       left: 50%;
-      width: 6px;
+      width: 5px;
       background: linear-gradient(90deg, #bdc3c7, #7f8c8d, #95a5a6);
       transform: translateX(-50%);
       z-index: 1;
@@ -255,8 +269,8 @@
 
     .col-footer {
       text-align: center;
-      padding: 8px 0;
-      font-size: 1.8rem;
+      padding: 6px 0;
+      font-size: 1.4rem;
       font-weight: bold;
       border-top: 1px solid #ddd;
       background-color: #fff;
@@ -264,38 +278,39 @@
 
     /* 側邊資訊欄 */
     .sidebar {
-      width: 200px;
+      width: 180px;
       background-color: #34495e;
       color: white;
-      padding: 20px;
+      padding: 15px 10px;
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
       box-shadow: -2px 0 8px rgba(0,0,0,0.15);
+      flex-shrink: 0;
     }
 
     .sidebar-title {
-      font-size: 1rem;
+      font-size: 0.9rem;
       color: #bdc3c7;
-      margin-bottom: 6px;
+      margin-bottom: 4px;
     }
 
     .sidebar-value {
-      font-size: 2.3rem;
+      font-size: 2rem;
       font-weight: bold;
       color: #f1c40f;
-      margin-bottom: 25px;
+      margin-bottom: 15px;
       word-break: break-all;
       text-align: center;
     }
 
     .sidebar-chinese {
-      font-size: 1.5rem;
+      font-size: 1.3rem;
       font-weight: bold;
       color: #2ecc71;
       text-align: center;
-      line-height: 1.4;
+      line-height: 1.3;
     }
 
     /* 拖拉跟隨元素 */
@@ -305,6 +320,50 @@
       z-index: 1000;
       opacity: 0.85;
       transform: translate(-50%, -50%);
+    }
+
+    /* 📱 手機與直向 iPad 響應式優化 */
+    @media (max-width: 768px) {
+      header {
+        justify-content: center;
+      }
+      h1 {
+        width: 100%;
+        text-align: center;
+        font-size: 1.1rem;
+      }
+      .header-controls {
+        justify-content: center;
+        width: 100%;
+      }
+      .top-panel {
+        justify-content: center;
+        padding-right: 15px;
+      }
+      .main-layout {
+        flex-direction: column; /* 改為上下排列 */
+      }
+      .sidebar {
+        width: 100%;
+        flex-direction: row; /* 資訊欄改為橫向排列 */
+        justify-content: space-around;
+        padding: 10px;
+      }
+      .sidebar-value {
+        margin-bottom: 0;
+        font-size: 1.5rem;
+      }
+      .sidebar-chinese {
+        font-size: 1.1rem;
+      }
+      .flat-hundred-3d {
+        width: 70px;
+        height: 70px;
+      }
+      .cube-thousand-svg {
+        width: 80px;
+        height: 80px;
+      }
     }
   </style>
 </head>
@@ -322,7 +381,7 @@
     </div>
   </header>
 
-  <!-- 上方拖拉來源區 (靠右對齊【個位】欄位) -->
+  <!-- 上方拖拉來源區 -->
   <div class="top-panel" id="topPanel">
     <div class="source-wrapper">
       <div class="source-item" id="sourceCube">
@@ -330,7 +389,7 @@
         <div class="source-hint">拉數粒到【個位】</div>
       </div>
       <div class="source-item" id="sourceBead">
-        <div class="abacus-bead" style="width: 35px; height: 12px; margin: 0;"></div>
+        <div class="abacus-bead" style="width: 30px; height: 12px; margin: 0;"></div>
         <div class="source-hint">拉算珠到【個位】</div>
       </div>
     </div>
@@ -378,10 +437,14 @@
 
     <!-- 側邊顯示欄 -->
     <div class="sidebar">
-      <div class="sidebar-title">數字顯示</div>
-      <div class="sidebar-value" id="displayNumber">0</div>
-      <div class="sidebar-title">中文讀法</div>
-      <div class="sidebar-chinese" id="displayChinese">零</div>
+      <div>
+        <div class="sidebar-title">數字顯示</div>
+        <div class="sidebar-value" id="displayNumber">0</div>
+      </div>
+      <div>
+        <div class="sidebar-title">中文讀法</div>
+        <div class="sidebar-chinese" id="displayChinese">零</div>
+      </div>
     </div>
   </div>
 
@@ -405,7 +468,7 @@
       });
     }
 
-    // 使用 Pointer Events 全面支援 iPad 與觸控螢幕
+    // Pointer Events 完全相容 iPad Touch
     function setupDragSource(elementId, type) {
       const el = document.getElementById(elementId);
       el.addEventListener('pointerdown', (e) => handlePointerDown(e, type));
@@ -482,7 +545,6 @@
         const rect = col.getBoundingClientRect();
         if (x >= rect.left && x <= rect.right && y >= rect.top && y <= rect.bottom) {
           const colType = col.getAttribute('data-type');
-          // 限制：只有拖放到【個位】才會生效，其餘位置無反應
           if (colType === 'units') {
             counts.units += 1;
             checkCarries();
