@@ -1,0 +1,397 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>小二數學：湊成 100 的動態組合探討 App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+      background-color: #f0f4f8;
+      min-height: 100vh;
+    }
+
+    /* 3D 數粒與算珠視覺風格 */
+    .rod-ten {
+      width: 14px;
+      height: 130px;
+      background: #2ecc71;
+      border: 1px solid #27ae60;
+      border-radius: 3px;
+      box-shadow: inset -1px 0 0 #1e8449, 1px 1px 3px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      transition: all 0.5s ease;
+      flex-shrink: 0;
+    }
+    .rod-seg {
+      height: 13px;
+      border-bottom: 0.5px solid #1e8449;
+    }
+
+    .cube-unit {
+      width: 13px;
+      height: 13px;
+      background: #f1c40f;
+      border: 1px solid #d4ac0d;
+      border-radius: 2px;
+      box-shadow: inset -1px -1px 0 #b7950b, 1px 1px 2px rgba(0,0,0,0.1);
+      transition: all 0.5s ease;
+      flex-shrink: 0;
+    }
+
+    /* 新進位變出來的十位棒閃光效果 */
+    .glow-rod {
+      animation: glowAnim 0.8s ease-in-out infinite alternate;
+      border-color: #f39c12;
+    }
+    @keyframes glowAnim {
+      from { box-shadow: 0 0 6px #f1c40f, inset -1px 0 0 #1e8449; transform: scale(1); }
+      to { box-shadow: 0 0 18px #f39c12, inset -1px 0 0 #1e8449; transform: scale(1.08); }
+    }
+
+    .glow-cubes .cube-unit {
+      animation: glowCube 0.6s ease-in-out infinite alternate;
+    }
+    @keyframes glowCube {
+      from { box-shadow: 0 0 4px #f1c40f; }
+      to { box-shadow: 0 0 12px #e67e22; }
+    }
+
+    /* 百板樣式 */
+    .combined-hundred {
+      width: 150px;
+      height: 150px;
+      background: #3498db;
+      border: 2.5px solid #2980b9;
+      border-radius: 6px;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      box-shadow: 0 8px 20px rgba(0,0,0,0.2);
+      animation: popIn 0.6s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    .hundred-seg {
+      border: 0.5px solid #5dade2;
+    }
+
+    @keyframes popIn {
+      0% { transform: scale(0.2); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+
+    /* 移動動畫過渡 */
+    .flying-element {
+      position: fixed;
+      z-index: 9999;
+      pointer-events: none;
+      transition: all 0.9s cubic-bezier(0.25, 1, 0.5, 1);
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center pb-8">
+
+  <header class="bg-slate-800 text-white w-full py-3 px-4 text-center shadow-md">
+    <h1 class="text-xl md:text-2xl font-bold tracking-wide">小二數學：湊成 100 的動態組合探討</h1>
+  </header>
+
+  <!-- 主控制區 -->
+  <main class="w-full max-w-4xl px-3 flex flex-col items-center">
+    
+    <div class="bg-white w-full my-4 p-4 md:p-6 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-4 items-center">
+      
+      <!-- 拉桿 -->
+      <div class="w-full flex items-center justify-center gap-4">
+        <label for="numSlider" class="font-bold text-slate-700 text-base md:text-lg whitespace-nowrap">自由分拆 100：</label>
+        <input type="range" id="numSlider" min="1" max="99" value="54" 
+               class="w-full max-w-md h-3 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500"
+               oninput="onSliderChange()">
+      </div>
+
+      <!-- 快捷預設按鈕 -->
+      <div class="flex flex-wrap gap-2.5 justify-center w-full">
+        <button class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-xl transition shadow-sm active:scale-95 text-sm md:text-base" onclick="setPreset(54)">常見：54 + 46</button>
+        <button class="bg-sky-500 hover:bg-sky-600 text-white font-bold py-2 px-4 rounded-xl transition shadow-sm active:scale-95 text-sm md:text-base" onclick="setPreset(37)">常見：37 + 63</button>
+        <button class="bg-teal-500 hover:bg-teal-600 text-white font-bold py-2 px-4 rounded-xl transition shadow-sm active:scale-95 text-sm md:text-base" onclick="setPreset(60)">零字尾：60 + 40</button>
+        <button id="btnCombine" class="bg-amber-500 hover:bg-amber-600 text-white font-bold py-2 px-5 rounded-xl transition shadow-md active:scale-95 text-sm md:text-base" onclick="startCombineAnimation()">▶️ 演示「湊合 100」過程</button>
+        <button id="btnSplit" class="bg-purple-500 hover:bg-purple-600 text-white font-bold py-2 px-5 rounded-xl transition shadow-md active:scale-95 text-sm md:text-base hidden" onclick="resetStageUI()">◀️ 重置 / 拆解 100</button>
+      </div>
+
+    </div>
+
+    <!-- 解說提示區 -->
+    <div id="explanation" class="bg-emerald-50 border-2 border-emerald-400 rounded-xl p-3 md:p-4 text-center text-base md:text-lg text-emerald-800 font-bold w-full mb-3 shadow-sm transition-all duration-300">
+      請點擊「演示湊合 100 過程」按鈕，觀察個位與十位如何變化。
+    </div>
+
+    <!-- 算式顯示 -->
+    <div id="equationText" class="text-3xl md:text-4xl font-extrabold text-red-500 my-2 tracking-wider">
+      54 + 46 = 100
+    </div>
+
+    <!-- 數粒舞台區 -->
+    <div id="stage" class="w-full bg-white rounded-2xl p-4 md:p-6 shadow-md border border-slate-200 relative min-h-[340px] flex justify-between items-stretch overflow-hidden">
+      
+      <!-- 左邊區塊 (沒有 Part A badge) -->
+      <div id="boxA" class="flex-1 flex flex-col items-center border-2 border-dashed border-slate-300 rounded-xl p-3 mx-1 md:mx-2 bg-slate-50/50 min-h-[260px] transition-all duration-300">
+        <div id="valA" class="text-3xl font-extrabold text-slate-700 mb-3">54</div>
+        <div id="blocksA" class="flex gap-4 items-end justify-center min-h-[160px] w-full relative"></div>
+      </div>
+
+      <!-- 中間百板展示區 (預設隱藏) -->
+      <div id="centerArea" class="hidden flex-col items-center justify-center w-full min-h-[260px]"></div>
+
+      <!-- 右邊區塊 (沒有 Part B badge) -->
+      <div id="boxB" class="flex-1 flex flex-col items-center border-2 border-dashed border-slate-300 rounded-xl p-3 mx-1 md:mx-2 bg-slate-50/50 min-h-[260px] transition-all duration-300">
+        <div id="valB" class="text-3xl font-extrabold text-slate-700 mb-3">46</div>
+        <div id="blocksB" class="flex gap-4 items-end justify-center min-h-[160px] w-full relative"></div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let currentA = 54;
+    let isAnimating = false;
+
+    function onSliderChange() {
+      if (isAnimating) return;
+      currentA = parseInt(document.getElementById('numSlider').value);
+      resetStageUI();
+    }
+
+    function setPreset(val) {
+      if (isAnimating) return;
+      document.getElementById('numSlider').value = val;
+      currentA = val;
+      resetStageUI();
+    }
+
+    function resetStageUI() {
+      if (isAnimating) return;
+      let currentB = 100 - currentA;
+
+      // 恢復介面佈局
+      document.getElementById('boxA').style.display = 'flex';
+      document.getElementById('boxB').style.display = 'flex';
+      document.getElementById('centerArea').style.display = 'none';
+      document.getElementById('centerArea').classList.add('hidden');
+      
+      document.getElementById('btnCombine').classList.remove('hidden');
+      document.getElementById('btnSplit').classList.add('hidden');
+
+      document.getElementById('valA').innerText = currentA;
+      document.getElementById('valB').innerText = currentB;
+      document.getElementById('equationText').innerText = `${currentA} + ${currentB} = 100`;
+
+      // 渲染數粒
+      renderBlocks('blocksA', currentA);
+      renderBlocks('blocksB', currentB);
+
+      updateExplanationText();
+    }
+
+    function updateExplanationText() {
+      let currentB = 100 - currentA;
+      let tensA = Math.floor(currentA / 10), unitsA = currentA % 10;
+      let tensB = Math.floor(currentB / 10), unitsB = currentB % 10;
+
+      if (unitsA === 0) {
+        document.getElementById('explanation').innerText = 
+          `【零字尾個案】十位直接相加：${tensA * 10} + ${tensB * 10} = 100（剛好 10 個十）`;
+      } else {
+        document.getElementById('explanation').innerText = 
+          `十位相加：${tensA * 10} + ${tensB * 10} = ${(tensA + tensB) * 10} | 個位湊十：${unitsA} + ${unitsB} = 10 ➔ ${(tensA + tensB) * 10} + 10 = 100！`;
+      }
+    }
+
+    function renderBlocks(containerId, num) {
+      const container = document.getElementById(containerId);
+      container.innerHTML = '';
+
+      let tens = Math.floor(num / 10);
+      let units = num % 10;
+
+      // 十位綠棒
+      const tensDiv = document.createElement('div');
+      tensDiv.className = 'tens-group flex gap-1.5 items-end';
+      for (let i = 0; i < tens; i++) {
+        tensDiv.appendChild(createRodTen());
+      }
+      container.appendChild(tensDiv);
+
+      // 個位黃粒
+      if (units > 0) {
+        const unitsDiv = document.createElement('div');
+        unitsDiv.className = 'units-group flex flex-wrap gap-1 items-end max-w-[80px]';
+        for (let i = 0; i < units; i++) {
+          let cube = document.createElement('div');
+          cube.className = 'cube-unit';
+          unitsDiv.appendChild(cube);
+        }
+        container.appendChild(unitsDiv);
+      }
+    }
+
+    function createRodTen(isNew = false) {
+      let rod = document.createElement('div');
+      rod.className = isNew ? 'rod-ten glow-rod' : 'rod-ten';
+      for (let j = 0; j < 10; j++) {
+        let seg = document.createElement('div');
+        seg.className = 'rod-seg';
+        rod.appendChild(seg);
+      }
+      return rod;
+    }
+
+    // 精確座標跨區飛行動畫助手
+    function flyElement(sourceElem, targetElem, onComplete) {
+      if (!sourceElem || !targetElem) {
+        if (onComplete) onComplete();
+        return;
+      }
+
+      // 取得起止絕對螢幕座標
+      const srcRect = sourceElem.getBoundingClientRect();
+      const tgtRect = targetElem.getBoundingClientRect();
+
+      // 克隆節點進行飛行動畫
+      const flyer = sourceElem.cloneNode(true);
+      flyer.classList.add('flying-element');
+      flyer.style.left = `${srcRect.left}px`;
+      flyer.style.top = `${srcRect.top}px`;
+      flyer.style.width = `${srcRect.width}px`;
+      flyer.style.height = `${srcRect.height}px`;
+
+      document.body.appendChild(flyer);
+
+      // 隱藏原始對象
+      sourceElem.style.visibility = 'hidden';
+
+      // 觸發 Transition 飛過去
+      requestAnimationFrame(() => {
+        flyer.style.left = `${tgtRect.left}px`;
+        flyer.style.top = `${tgtRect.top}px`;
+      });
+
+      setTimeout(() => {
+        flyer.remove();
+        if (onComplete) onComplete();
+      }, 950);
+    }
+
+    /* 🌟 核心動態：演示湊合過程 */
+    function startCombineAnimation() {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      let currentB = 100 - currentA;
+      let tensA = Math.floor(currentA / 10), unitsA = currentA % 10;
+      let tensB = Math.floor(currentB / 10), unitsB = currentB % 10;
+
+      const expBox = document.getElementById('explanation');
+
+      // 情況一：零字尾 (例如 60 + 40)
+      if (unitsA === 0) {
+        expBox.innerText = `【步驟 1】個位係 0，把右邊的 ${tensB} 條十位棒飛去左邊與 ${tensA} 條棒合併...`;
+
+        const tensGroupB = document.querySelector('#blocksB .tens-group');
+        const tensGroupA = document.querySelector('#blocksA .tens-group');
+
+        flyElement(tensGroupB, tensGroupA, () => {
+          expBox.innerText = `【步驟 2】10 條十位棒剛好無縫拼成 1 個 100 百板！`;
+          setTimeout(() => {
+            showHundredBoard();
+            isAnimating = false;
+          }, 600);
+        });
+        return;
+      }
+
+      // 情況二：非零字尾 (例如 54 + 46)
+      // 階段 1: 個位飛過去湊成 10
+      expBox.innerText = `【步驟 1】右邊的 ${unitsB} 個個位數粒飛去左邊，與 ${unitsA} 個個位數粒湊成 10...`;
+
+      const unitsGroupB = document.querySelector('#blocksB .units-group');
+      const unitsGroupA = document.querySelector('#blocksA .units-group');
+
+      flyElement(unitsGroupB, unitsGroupA, () => {
+        // 階段 2: 個位湊滿10高亮並合體變成 1 條新十位棒
+        expBox.innerText = `【步驟 2】個位 ${unitsA} + ${unitsB} = 10！自動進位變成 1 條新的十位棒！`;
+
+        let containerA = document.getElementById('blocksA');
+        containerA.innerHTML = '';
+
+        // 重新渲染左邊：原本十位 + 1條發光新十位棒
+        let tensDivA = document.createElement('div');
+        tensDivA.className = 'tens-group flex gap-1.5 items-end';
+        for (let i = 0; i < tensA; i++) tensDivA.appendChild(createRodTen());
+        
+        let newRod = createRodTen(true); // 發光的十位棒
+        tensDivA.appendChild(newRod);
+        containerA.appendChild(tensDivA);
+
+        // 更新左邊數值為進位後的數值
+        document.getElementById('valA').innerText = (tensA + 1) * 10;
+
+        // 清空右邊個位，只留右邊十位棒
+        let containerB = document.getElementById('blocksB');
+        containerB.innerHTML = '';
+        let tensDivB = document.createElement('div');
+        tensDivB.className = 'tens-group flex gap-1.5 items-end';
+        for (let i = 0; i < tensB; i++) tensDivB.appendChild(createRodTen());
+        containerB.appendChild(tensDivB);
+
+        // 階段 3: 右邊十位棒飛過去合併
+        setTimeout(() => {
+          expBox.innerText = `【步驟 3】右邊的 ${tensB} 條十位棒飛去左邊，與 ${tensA + 1} 條十位棒會合...`;
+
+          const newTensGroupB = document.querySelector('#blocksB .tens-group');
+          const newTensGroupA = document.querySelector('#blocksA .tens-group');
+
+          flyElement(newTensGroupB, newTensGroupA, () => {
+            // 階段 4: 10 條十位棒合成 100 百板
+            expBox.innerText = `【步驟 4】現在合共 10 條十位棒（10 個十），拼成 100 百板！`;
+
+            setTimeout(() => {
+              showHundredBoard();
+              isAnimating = false;
+            }, 800);
+          });
+
+        }, 1800);
+
+      });
+    }
+
+    function showHundredBoard() {
+      document.getElementById('boxA').style.display = 'none';
+      document.getElementById('boxB').style.display = 'none';
+
+      const centerArea = document.getElementById('centerArea');
+      centerArea.style.display = 'flex';
+      centerArea.classList.remove('hidden');
+      centerArea.innerHTML = `
+        <div class="combined-hundred" id="hundredBoard"></div>
+        <h2 class="text-emerald-600 font-extrabold text-2xl md:text-3xl mt-4 tracking-wide">10 個十 = 1 個百板 (100)！</h2>
+      `;
+
+      const board = document.getElementById('hundredBoard');
+      for (let i = 0; i < 100; i++) {
+        let seg = document.createElement('div');
+        seg.className = 'hundred-seg';
+        board.appendChild(seg);
+      }
+
+      document.getElementById('btnCombine').classList.add('hidden');
+      document.getElementById('btnSplit').classList.remove('hidden');
+    }
+
+    // 初始化頁面
+    resetStageUI();
+  </script>
+</body>
+</html>
