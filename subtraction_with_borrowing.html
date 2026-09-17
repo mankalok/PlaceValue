@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>小二數學：兩位數不退位減法</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f1f5f9;
+      touch-action: manipulation;
+    }
+
+    /* 3D 數粒風格 */
+    .rod-ten {
+      width: 22px;
+      height: 150px;
+      background: #2ecc71;
+      border: 2px solid #27ae60;
+      border-radius: 6px;
+      box-shadow: inset -2px 0 0 #1e8449, 2px 3px 6px rgba(0,0,0,0.15);
+      display: flex;
+      flex-direction: column;
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+    }
+    .rod-ten:active { transform: scale(0.95); }
+    .rod-seg {
+      height: 15px;
+      border-bottom: 1px solid #1e8449;
+    }
+
+    .cube-unit {
+      width: 22px;
+      height: 22px;
+      background: #f1c40f;
+      border: 2px solid #d4ac0d;
+      border-radius: 4px;
+      box-shadow: inset -1px -1px 0 #b7950b, 1px 2px 4px rgba(0,0,0,0.15);
+      cursor: pointer;
+      transition: all 0.2s ease;
+      flex-shrink: 0;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+    }
+    .cube-unit:active { transform: scale(0.9); }
+
+    /* 被劃掉/減去的狀態 */
+    .removed-item {
+      opacity: 0.2;
+      filter: grayscale(100%);
+      position: relative;
+    }
+    .removed-item::after {
+      content: '✕';
+      color: #ef4444;
+      font-weight: 900;
+      font-size: 18px;
+      position: absolute;
+    }
+
+    /* 直式對齊風格 */
+    .vertical-grid {
+      display: grid;
+      grid-template-columns: 2.5rem 3.5rem 3.5rem;
+      row-gap: 0.4rem;
+      align-items: center;
+      justify-items: center;
+      font-family: 'Courier New', Courier, monospace;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center min-h-screen pb-6">
+
+  <!-- 頂部簡潔控制列 -->
+  <header class="bg-indigo-600 text-white w-full py-3 px-4 shadow-md flex items-center justify-between max-w-4xl rounded-b-2xl">
+    <div class="flex items-center gap-2">
+      <span class="text-xl font-bold">題目：</span>
+      <input type="number" id="numMinuend" value="58" min="11" max="99" onchange="applyCustomProblem()" class="w-14 p-1 text-center text-xl font-extrabold text-indigo-900 border-2 border-indigo-200 rounded-lg outline-none">
+      <span class="text-2xl font-bold">-</span>
+      <input type="number" id="numSubtrahend" value="23" min="1" max="98" onchange="applyCustomProblem()" class="w-14 p-1 text-center text-xl font-extrabold text-indigo-900 border-2 border-indigo-200 rounded-lg outline-none">
+    </div>
+
+    <div class="flex gap-2">
+      <button onclick="startAutoDemo()" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-sm transition shadow flex items-center gap-1">
+        ▶️ 演示
+      </button>
+      <button onclick="generateRandomProblem()" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-sm transition shadow flex items-center gap-1">
+        🎲 換題
+      </button>
+      <button onclick="resetApp()" class="bg-indigo-500 hover:bg-indigo-400 active:scale-95 text-white font-bold px-3 py-1.5 rounded-xl text-sm transition shadow">
+        🔄 重來
+      </button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-4xl px-3 flex flex-col md:flex-row gap-4 mt-4 items-start">
+
+    <!-- 左邊：直式區域 -->
+    <div class="w-full md:w-5/12 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col items-center justify-center min-h-[340px]">
+      <div class="vertical-grid text-3xl font-extrabold text-slate-800">
+        <!-- 位值標題 -->
+        <div></div>
+        <div class="text-base font-bold text-emerald-600 border-b-2 border-emerald-100 w-full text-center pb-1">十位</div>
+        <div class="text-base font-bold text-amber-600 border-b-2 border-amber-100 w-full text-center pb-1">個位</div>
+
+        <!-- 被減數 -->
+        <div></div>
+        <div id="vMinuendTen">5</div>
+        <div id="vMinuendUnit">8</div>
+
+        <!-- 減號與減數 -->
+        <div class="text-slate-600 text-2xl font-bold">-</div>
+        <div id="vSubtrahendTen" class="text-slate-700">2</div>
+        <div id="vSubtrahendUnit" class="text-slate-700">3</div>
+
+        <!-- 橫線 -->
+        <div class="col-span-3 w-full border-b-4 border-slate-800 my-1"></div>
+
+        <!-- 答案行 -->
+        <div></div>
+        <div id="vAnsTen" class="text-indigo-600 text-4xl font-extrabold h-10 flex items-center justify-center">?</div>
+        <div id="vAnsUnit" class="text-indigo-600 text-4xl font-extrabold h-10 flex items-center justify-center">?</div>
+      </div>
+
+      <div id="statusHint" class="mt-6 px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800">
+        👉 點擊黃色數粒劃掉減去
+      </div>
+    </div>
+
+    <!-- 右邊：數粒操作區 -->
+    <div class="w-full md:w-7/12 bg-white rounded-2xl p-4 shadow-sm border border-slate-200 flex flex-col justify-between min-h-[340px]">
+      
+      <div class="grid grid-cols-2 gap-3 h-full">
+        <!-- 十位區 -->
+        <div class="bg-slate-50 border-2 border-dashed border-emerald-200 rounded-xl p-3 flex flex-col items-center">
+          <div class="text-xs font-bold text-emerald-700 mb-2">十位棒 (10)</div>
+          <div id="tenRodsContainer" class="flex flex-wrap gap-2 justify-center items-end h-full"></div>
+        </div>
+
+        <!-- 個位區 -->
+        <div class="bg-slate-50 border-2 border-dashed border-amber-200 rounded-xl p-3 flex flex-col items-center">
+          <div class="text-xs font-bold text-amber-700 mb-2">個位數粒 (1)</div>
+          <div id="unitCubesContainer" class="flex flex-wrap gap-2 justify-center items-start content-start h-full max-w-[200px]"></div>
+        </div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let minuend = 58;
+    let subtrahend = 23;
+
+    let currentTens = 5;
+    let currentUnits = 8;
+
+    let removedUnits = 0;
+    let removedTens = 0;
+
+    let isAnimating = false;
+
+    window.onload = function() {
+      resetApp();
+    };
+
+    /* 隨機生成「不退位」題目 (保證個位 mU >= sU) */
+    function generateRandomProblem() {
+      if (isAnimating) return;
+      let mT = Math.floor(Math.random() * 5) + 3; // 3 ~ 7
+      let mU = Math.floor(Math.random() * 6) + 3; // 3 ~ 8
+      let sT = Math.floor(Math.random() * (mT - 1)) + 1;
+      let sU = Math.floor(Math.random() * mU) + 1; // 確保 mU >= sU
+
+      document.getElementById('numMinuend').value = mT * 10 + mU;
+      document.getElementById('numSubtrahend').value = sT * 10 + sU;
+      applyCustomProblem();
+    }
+
+    function applyCustomProblem() {
+      if (isAnimating) return;
+      let m = parseInt(document.getElementById('numMinuend').value) || 0;
+      let s = parseInt(document.getElementById('numSubtrahend').value) || 0;
+
+      let mU = m % 10;
+      let sU = s % 10;
+
+      // 如果不符合不退位邏輯，自動調整
+      if (mU < sU) {
+        alert('這是不退位練習，個位數字必須大於或等於減數的個位！已為您自動修正。');
+        s = Math.floor(s / 10) * 10 + mU;
+        document.getElementById('numSubtrahend').value = s;
+      }
+
+      if (m <= s || m > 99 || s < 1) {
+        resetApp();
+        return;
+      }
+
+      minuend = m;
+      subtrahend = s;
+      resetApp();
+    }
+
+    function resetApp() {
+      isAnimating = false;
+      currentTens = Math.floor(minuend / 10);
+      currentUnits = minuend % 10;
+      removedUnits = 0;
+      removedTens = 0;
+
+      document.getElementById('vMinuendTen').innerText = currentTens;
+      document.getElementById('vMinuendUnit').innerText = currentUnits;
+
+      document.getElementById('vSubtrahendTen').innerText = Math.floor(subtrahend / 10);
+      document.getElementById('vSubtrahendUnit').innerText = subtrahend % 10;
+
+      document.getElementById('vAnsTen').innerText = '?';
+      document.getElementById('vAnsUnit').innerText = '?';
+
+      document.getElementById('statusHint').innerText = '👉 點擊黃色數粒劃掉減去';
+      document.getElementById('statusHint').className = 'mt-6 px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
+
+      renderManipulatives();
+    }
+
+    function renderManipulatives() {
+      // 渲染十位棒
+      const tenContainer = document.getElementById('tenRodsContainer');
+      tenContainer.innerHTML = '';
+      for (let i = 0; i < currentTens; i++) {
+        let rod = document.createElement('div');
+        rod.className = 'rod-ten';
+        if (i < removedTens) rod.classList.add('removed-item');
+        for (let j = 0; j < 10; j++) {
+          let seg = document.createElement('div');
+          seg.className = 'rod-seg';
+          rod.appendChild(seg);
+        }
+        rod.onclick = () => onRodClick(i);
+        tenContainer.appendChild(rod);
+      }
+
+      // 渲染個位數粒
+      const unitContainer = document.getElementById('unitCubesContainer');
+      unitContainer.innerHTML = '';
+      for (let i = 0; i < currentUnits; i++) {
+        let cube = document.createElement('div');
+        cube.className = 'cube-unit';
+        if (i < removedUnits) cube.classList.add('removed-item');
+        cube.onclick = () => onCubeClick(i);
+        unitContainer.appendChild(cube);
+      }
+    }
+
+    /* 點擊十位棒 */
+    function onRodClick(index) {
+      if (isAnimating) return;
+      let reqUnits = subtrahend % 10;
+      let reqTens = Math.floor(subtrahend / 10);
+
+      // 個位劃完後才可劃十位
+      if (removedUnits >= reqUnits && removedTens < reqTens) {
+        removedTens++;
+        renderManipulatives();
+        checkProgress();
+      } else if (removedUnits < reqUnits) {
+        document.getElementById('statusHint').innerText = '⚠️ 請先點擊黃色數粒減去個位！';
+      }
+    }
+
+    /* 點擊個位數粒 */
+    function onCubeClick(index) {
+      if (isAnimating) return;
+      let reqUnits = subtrahend % 10;
+
+      if (removedUnits < reqUnits) {
+        removedUnits++;
+        renderManipulatives();
+        checkProgress();
+      }
+    }
+
+    function checkProgress() {
+      let reqUnits = subtrahend % 10;
+      let reqTens = Math.floor(subtrahend / 10);
+
+      if (removedUnits === reqUnits && document.getElementById('vAnsUnit').innerText === '?') {
+        document.getElementById('vAnsUnit').innerText = currentUnits - removedUnits;
+        if (removedTens < reqTens) {
+          document.getElementById('statusHint').innerText = `👉 請點擊綠色十位棒劃掉 ${reqTens} 條`;
+        }
+      }
+
+      if (removedTens === reqTens && document.getElementById('vAnsTen').innerText === '?') {
+        document.getElementById('vAnsTen').innerText = currentTens - removedTens;
+      }
+
+      if (removedUnits === reqUnits && removedTens === reqTens) {
+        document.getElementById('statusHint').innerText = `🎉 計算完成！答案是 ${minuend - subtrahend}`;
+        document.getElementById('statusHint').className = 'mt-6 px-4 py-1.5 rounded-full text-xs font-bold bg-emerald-100 text-emerald-800';
+      }
+    }
+
+    /* 動態演示 */
+    function startAutoDemo() {
+      if (isAnimating) return;
+      resetApp();
+
+      let reqUnits = subtrahend % 10;
+      let reqTens = Math.floor(subtrahend / 10);
+      let stepDelay = 300;
+
+      isAnimating = true;
+
+      // 1. 劃掉個位
+      let uInterval = setInterval(() => {
+        if (removedUnits < reqUnits) {
+          removedUnits++;
+          renderManipulatives();
+          checkProgress();
+        } else {
+          clearInterval(uInterval);
+          // 2. 劃掉十位
+          setTimeout(() => {
+            let tInterval = setInterval(() => {
+              if (removedTens < reqTens) {
+                removedTens++;
+                renderManipulatives();
+                checkProgress();
+              } else {
+                clearInterval(tInterval);
+                isAnimating = false;
+              }
+            }, stepDelay);
+          }, 400);
+        }
+      }, stepDelay);
+    }
+  </script>
+</body>
+</html>
