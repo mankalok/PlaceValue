@@ -1,0 +1,665 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>湊 100 / 1,000 / 10,000 位值連鎖進位互動 App</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * { box-sizing: border-box; user-select: none; -webkit-user-select: none; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f1f5f9;
+      min-height: 100vh;
+    }
+
+    /* 3D 數粒 - 個位 (1) */
+    .cube-unit {
+      width: 12px;
+      height: 12px;
+      background: #f1c40f;
+      border: 1px solid #b7950b;
+      border-radius: 2px;
+      box-shadow: inset -1px -1px 0 #967d0d;
+      flex-shrink: 0;
+    }
+
+    /* 3D 數粒 - 十位棒 (10) */
+    .rod-ten {
+      width: 12px;
+      height: 90px;
+      background: #2ecc71;
+      border: 1px solid #1e8449;
+      border-radius: 2px;
+      display: flex;
+      flex-direction: column;
+      flex-shrink: 0;
+      box-shadow: 1px 1px 3px rgba(0,0,0,0.15);
+    }
+    .rod-seg {
+      height: 9px;
+      border-bottom: 0.5px solid #145a32;
+    }
+
+    /* 3D 數粒 - 百板 (100) */
+    .board-hundred {
+      width: 65px;
+      height: 65px;
+      background: #3498db;
+      border: 1.5px solid #1f618d;
+      border-radius: 3px;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+      flex-shrink: 0;
+      box-shadow: 2px 2px 4px rgba(0,0,0,0.15);
+    }
+    .hundred-seg {
+      border: 0.5px solid #5dade2;
+    }
+
+    /* 3D 千位正方體 (1,000) */
+    .cube-thousand-wrapper {
+      perspective: 600px;
+      display: inline-block;
+      margin: 5px;
+    }
+    .cube-thousand {
+      width: 60px;
+      height: 60px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(-20deg) rotateY(-30deg);
+      transition: all 0.5s ease;
+    }
+    .t-face {
+      position: absolute;
+      width: 60px;
+      height: 60px;
+      background: #8e44ad;
+      border: 1px solid #5b2c6f;
+      display: grid;
+      grid-template-columns: repeat(10, 1fr);
+      grid-template-rows: repeat(10, 1fr);
+    }
+    .t-face .t-seg { border: 0.5px solid #bb8fce; }
+    .tf-front  { transform: translateZ(30px); }
+    .tf-right  { transform: rotateY(90deg) translateZ(30px); background: #732d91; }
+    .tf-top    { transform: rotateX(90deg) translateZ(30px); background: #a569bd; }
+
+    /* 3D 萬位巨型長方體 (10,000) */
+    .mega-10k-container {
+      perspective: 1000px;
+      margin: 20px auto;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+    .mega-10k-block {
+      width: 200px;
+      height: 80px;
+      position: relative;
+      transform-style: preserve-3d;
+      transform: rotateX(-22deg) rotateY(-25deg);
+      transition: transform 0.6s ease;
+    }
+    .m-face {
+      position: absolute;
+      border: 1.5px solid #d35400;
+    }
+    .mf-front {
+      width: 200px;
+      height: 80px;
+      background: #f39c12;
+      transform: translateZ(40px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+    .mf-top {
+      width: 200px;
+      height: 80px;
+      background: #f1c40f;
+      transform: rotateX(90deg) translateZ(40px);
+      display: grid;
+      grid-template-columns: repeat(5, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+    .mf-right {
+      width: 80px;
+      height: 80px;
+      background: #e67e22;
+      transform: rotateY(90deg) translateZ(160px);
+      display: grid;
+      grid-template-columns: repeat(2, 1fr);
+      grid-template-rows: repeat(2, 1fr);
+    }
+    .k-grid-cell {
+      border: 1px solid rgba(255, 255, 255, 0.6);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 10px;
+      font-weight: 800;
+      color: #78281f;
+    }
+
+    /* 飛航飛行元素 - CSS 動畫修復 */
+    .flying-item {
+      position: fixed !important;
+      z-index: 9999 !important;
+      pointer-events: none !important;
+      margin: 0 !important;
+      transition: transform 0.85s cubic-bezier(0.25, 1, 0.5, 1), opacity 0.2s ease-in-out !important;
+      will-change: transform;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center pb-12">
+
+  <header class="bg-slate-900 text-white w-full py-4 px-4 text-center shadow-md sticky top-0 z-50">
+    <h1 class="text-xl md:text-2xl font-black text-amber-400">
+      🧮 位值連鎖進位互動 App
+    </h1>
+    <p class="text-xs md:text-sm text-slate-300 mt-1">支援帶 0 數字精確湊合：湊百 · 湊千 · 湊萬</p>
+
+    <!-- Tab 選項 -->
+    <div class="flex justify-center gap-2 mt-3 max-w-xl mx-auto">
+      <button id="tab100" onclick="switchMode(100)" class="flex-1 py-1.5 px-3 rounded-xl font-bold text-sm bg-indigo-600 text-white border-2 border-amber-400">湊 100</button>
+      <button id="tab1000" onclick="switchMode(1000)" class="flex-1 py-1.5 px-3 rounded-xl font-bold text-sm bg-slate-700 text-slate-200">湊 1,000</button>
+      <button id="tab10000" onclick="switchMode(10000)" class="flex-1 py-1.5 px-3 rounded-xl font-bold text-sm bg-slate-700 text-slate-200">湊 10,000</button>
+    </div>
+  </header>
+
+  <main class="w-full max-w-5xl px-3 flex flex-col items-center mt-4">
+
+    <!-- 控制區塊 -->
+    <div class="bg-white w-full p-4 rounded-2xl shadow-sm border border-slate-200 flex flex-col gap-3 items-center">
+      
+      <div class="w-full flex items-center justify-center gap-3">
+        <label id="sliderLabel" for="numSlider" class="font-bold text-slate-700 text-sm md:text-base whitespace-nowrap">
+          數字 A：
+        </label>
+        <input type="range" id="numSlider" class="w-full max-w-md h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-amber-500" oninput="onSliderInput()">
+        <span id="sliderValDisplay" class="font-black text-indigo-600 text-lg w-16 text-right">3,651</span>
+      </div>
+
+      <!-- 快捷預設按鈕區 (含帶0數字) -->
+      <div id="presetContainer" class="flex flex-wrap gap-2 justify-center w-full"></div>
+
+      <!-- 按鈕區 -->
+      <div class="flex gap-3 justify-center w-full mt-1">
+        <button id="btnCombine" class="bg-amber-500 hover:bg-amber-600 active:scale-95 text-white font-black py-2 px-6 rounded-xl transition shadow text-sm md:text-base" onclick="startCombineAnimation()">
+          ▶️ 開始逐位湊合進位
+        </button>
+        <button id="btnReset" class="bg-slate-600 hover:bg-slate-700 active:scale-95 text-white font-bold py-2 px-5 rounded-xl transition shadow text-sm md:text-base hidden" onclick="resetUI()">
+          ◀️ 重置拆解
+        </button>
+      </div>
+    </div>
+
+    <!-- 步驟解說 -->
+    <div id="explanation" class="bg-amber-50 border border-amber-300 rounded-xl p-3 text-center text-sm md:text-base text-amber-900 font-bold w-full my-3 shadow-sm">
+      準備就緒，請點擊「開始逐位湊合進位」。
+    </div>
+
+    <!-- 算式 -->
+    <div id="equationText" class="text-2xl md:text-3xl font-black text-indigo-700 mb-3">
+      3,651 + 6,349 = 10,000
+    </div>
+
+    <!-- 主舞台區 -->
+    <div id="stage" class="w-full bg-white rounded-2xl p-4 shadow border border-slate-200 min-h-[360px] flex justify-between items-stretch overflow-hidden relative">
+      
+      <!-- 左區 A -->
+      <div id="boxA" class="flex-1 flex flex-col items-center border border-dashed border-slate-300 rounded-xl p-2 mx-1 bg-slate-50/50">
+        <div id="valA" class="text-2xl font-black text-slate-700 mb-2">3,651</div>
+        <div id="blocksA" class="flex flex-col items-center gap-2 w-full min-h-[260px] justify-end"></div>
+      </div>
+
+      <!-- 中央展示區 -->
+      <div id="centerArea" class="hidden flex-col items-center justify-center w-full min-h-[300px]"></div>
+
+      <!-- 右區 B -->
+      <div id="boxB" class="flex-1 flex flex-col items-center border border-dashed border-slate-300 rounded-xl p-2 mx-1 bg-slate-50/50">
+        <div id="valB" class="text-2xl font-black text-slate-700 mb-2">6,349</div>
+        <div id="blocksB" class="flex flex-col items-center gap-2 w-full min-h-[260px] justify-end"></div>
+      </div>
+
+    </div>
+
+  </main>
+
+  <script>
+    let currentMode = 10000;
+    let valueA = 3651;
+    let isAnimating = false;
+
+    window.onload = function() {
+      switchMode(10000);
+    };
+
+    function switchMode(mode) {
+      if (isAnimating) return;
+      currentMode = mode;
+
+      [100, 1000, 10000].forEach(m => {
+        const btn = document.getElementById(`tab${m}`);
+        btn.className = (m === mode) 
+          ? "flex-1 py-1.5 px-3 rounded-xl font-bold text-sm bg-indigo-600 text-white border-2 border-amber-400"
+          : "flex-1 py-1.5 px-3 rounded-xl font-bold text-sm bg-slate-700 text-slate-200";
+      });
+
+      const slider = document.getElementById('numSlider');
+      if (mode === 100) {
+        slider.min = 1; slider.max = 99; slider.step = 1; valueA = 54;
+      } else if (mode === 1000) {
+        slider.min = 1; slider.max = 999; slider.step = 1; valueA = 365;
+      } else if (mode === 10000) {
+        slider.min = 1; slider.max = 9999; slider.step = 1; valueA = 3651;
+      }
+      slider.value = valueA;
+
+      renderPresets();
+      resetUI();
+    }
+
+    /* 擴充包含帶 0 數字的快捷選項 */
+    function renderPresets() {
+      const container = document.getElementById('presetContainer');
+      container.innerHTML = '';
+
+      let presets = [];
+      if (currentMode === 100) {
+        presets = [
+          { name: '50 + 50 (十位進位)', val: 50 },
+          { name: '70 + 30 (十位進位)', val: 70 },
+          { name: '54 + 46', val: 54 },
+          { name: '81 + 19', val: 81 }
+        ];
+      } else if (currentMode === 1000) {
+        presets = [
+          { name: '300 + 700 (百位進位)', val: 300 },
+          { name: '450 + 550 (個位是0)', val: 450 },
+          { name: '709 + 291 (十位是0)', val: 709 },
+          { name: '365 + 635', val: 365 },
+          { name: '802 + 198 (十位是0)', val: 802 }
+        ];
+      } else if (currentMode === 10000) {
+        presets = [
+          { name: '3,000 + 7,000 (千位進位)', val: 3000 },
+          { name: '4,500 + 5,500 (十/個位是0)', val: 4500 },
+          { name: '6,080 + 3,920 (百/個位是0)', val: 6080 },
+          { name: '7,003 + 2,997 (百/十位是0)', val: 7003 },
+          { name: '3,651 + 6,349', val: 3651 },
+          { name: '8,045 + 1,955 (百位是0)', val: 8045 }
+        ];
+      }
+
+      presets.forEach(p => {
+        const btn = document.createElement('button');
+        btn.className = "bg-sky-500 hover:bg-sky-600 text-white font-bold py-1 px-3 rounded-lg text-xs transition active:scale-95";
+        btn.innerText = p.name;
+        btn.onclick = () => {
+          if (isAnimating) return;
+          document.getElementById('numSlider').value = p.val;
+          valueA = p.val;
+          resetUI();
+        };
+        container.appendChild(btn);
+      });
+    }
+
+    function onSliderInput() {
+      if (isAnimating) return;
+      valueA = parseInt(document.getElementById('numSlider').value);
+      resetUI();
+    }
+
+    function resetUI() {
+      isAnimating = false;
+      const valueB = currentMode - valueA;
+
+      document.getElementById('sliderValDisplay').innerText = valueA.toLocaleString();
+      document.getElementById('boxA').style.display = 'flex';
+      document.getElementById('boxB').style.display = 'flex';
+      document.getElementById('centerArea').style.display = 'none';
+
+      document.getElementById('btnCombine').classList.remove('hidden');
+      document.getElementById('btnReset').classList.add('hidden');
+
+      document.getElementById('valA').innerText = valueA.toLocaleString();
+      document.getElementById('valB').innerText = valueB.toLocaleString();
+      document.getElementById('equationText').innerText = `${valueA.toLocaleString()} + ${valueB.toLocaleString()} = ${currentMode.toLocaleString()}`;
+
+      renderBlocks('blocksA', valueA);
+      renderBlocks('blocksB', valueB);
+
+      document.getElementById('explanation').innerText = `💡 當前分拆：${valueA.toLocaleString()} 與 ${valueB.toLocaleString()}，準備點擊進行進位演示。`;
+    }
+
+    function renderBlocks(containerId, val) {
+      const c = document.getElementById(containerId);
+      c.innerHTML = '';
+
+      const th = Math.floor(val / 1000);
+      const h = Math.floor((val % 1000) / 100);
+      const t = Math.floor((val % 100) / 10);
+      const u = val % 10;
+
+      if (th > 0) {
+        const g = document.createElement('div');
+        g.className = 'group-th flex flex-wrap gap-1 justify-center w-full min-h-[30px] items-center';
+        for (let i = 0; i < th; i++) g.appendChild(createThousandCube());
+        c.appendChild(g);
+      }
+      if (h > 0) {
+        const g = document.createElement('div');
+        g.className = 'group-h flex flex-wrap gap-1 justify-center w-full min-h-[30px] items-center';
+        for (let i = 0; i < h; i++) g.appendChild(createHundredBoard());
+        c.appendChild(g);
+      }
+      if (t > 0) {
+        const g = document.createElement('div');
+        g.className = 'group-t flex flex-wrap gap-1 justify-center w-full min-h-[30px] items-center';
+        for (let i = 0; i < t; i++) g.appendChild(createTenRod());
+        c.appendChild(g);
+      }
+      if (u > 0) {
+        const g = document.createElement('div');
+        g.className = 'group-u flex flex-wrap gap-1 justify-center w-full min-h-[20px] items-center';
+        for (let i = 0; i < u; i++) g.appendChild(createUnitCube());
+        c.appendChild(g);
+      }
+    }
+
+    /* 元素生成器 */
+    function createUnitCube() {
+      const d = document.createElement('div');
+      d.className = 'cube-unit';
+      return d;
+    }
+    function createTenRod() {
+      const d = document.createElement('div');
+      d.className = 'rod-ten';
+      for (let i = 0; i < 10; i++) {
+        const s = document.createElement('div');
+        s.className = 'rod-seg';
+        d.appendChild(s);
+      }
+      return d;
+    }
+    function createHundredBoard() {
+      const d = document.createElement('div');
+      d.className = 'board-hundred';
+      for (let i = 0; i < 100; i++) {
+        const s = document.createElement('div');
+        s.className = 'hundred-seg';
+        d.appendChild(s);
+      }
+      return d;
+    }
+    function createThousandCube() {
+      const wrap = document.createElement('div');
+      wrap.className = 'cube-thousand-wrapper';
+      const cube = document.createElement('div');
+      cube.className = 'cube-thousand';
+      ['tf-front', 'tf-right', 'tf-top'].forEach(f => {
+        const face = document.createElement('div');
+        face.className = `t-face ${f}`;
+        for (let i = 0; i < 100; i++) {
+          const s = document.createElement('div');
+          s.className = 't-seg';
+          face.appendChild(s);
+        }
+        cube.appendChild(face);
+      });
+      wrap.appendChild(cube);
+      return wrap;
+    }
+
+    /* 🌟 修復核心：高精度座標對齊飛航動畫 */
+    function fly(src, tgt, cb) {
+      if (!src) { if (cb) cb(); return; }
+
+      const r1 = src.getBoundingClientRect();
+      let targetX, targetY;
+
+      if (tgt) {
+        const r2 = tgt.getBoundingClientRect();
+        targetX = r2.left + r2.width / 2 - r1.width / 2;
+        targetY = r2.top + r2.height / 2 - r1.height / 2;
+      } else {
+        // 若左邊無對應位值容器，飛往 Box A 中心的備用座標
+        const boxARect = document.getElementById('boxA').getBoundingClientRect();
+        targetX = boxARect.left + boxARect.width / 2 - r1.width / 2;
+        targetY = boxARect.top + boxARect.height / 2 - r1.height / 2;
+      }
+
+      const flyer = src.cloneNode(true);
+      flyer.classList.add('flying-item');
+      flyer.style.left = `${r1.left}px`;
+      flyer.style.top = `${r1.top}px`;
+      flyer.style.width = `${r1.width}px`;
+      flyer.style.height = `${r1.height}px`;
+
+      document.body.appendChild(flyer);
+      
+      // 隱藏 Box B 的原始積木，防止原處殘留
+      src.style.visibility = 'hidden';
+
+      const deltaX = targetX - r1.left;
+      const deltaY = targetY - r1.top;
+
+      requestAnimationFrame(() => {
+        flyer.style.transform = `translate(${deltaX}px, ${deltaY}px) scale(1.05)`;
+      });
+
+      setTimeout(() => {
+        flyer.remove();
+        if (cb) cb();
+      }, 880);
+    }
+
+    /* 連鎖湊合動畫主邏輯 */
+    function startCombineAnimation() {
+      if (isAnimating) return;
+      isAnimating = true;
+
+      const vB = currentMode - valueA;
+      const exp = document.getElementById('explanation');
+
+      let currA = valueA;
+      let currB = vB;
+
+      // 步驟 1: 個位湊 10
+      const uA = currA % 10, uB = currB % 10;
+
+      const step1_Units = () => {
+        if (uB === 0 && uA === 0) {
+          exp.innerText = `【步驟 1：個位】個位均為 0，無需進位，直接進行十位湊合...`;
+          setTimeout(step2_Tens, 1000);
+          return;
+        }
+
+        if (uB === 0) {
+          exp.innerText = `【步驟 1：個位】右邊個位為 0，直接跳過個位，進行十位湊合...`;
+          setTimeout(step2_Tens, 1000);
+          return;
+        }
+
+        exp.innerText = `【步驟 1：個位進位】右邊 ${uB} 個個位飛往左邊，與 ${uA} 個湊成 10...`;
+
+        fly(document.querySelector('#blocksB .group-u'), document.querySelector('#blocksA .group-u'), () => {
+          exp.innerText = `【步驟 1：個位進位】個位滿 10！自動進位成 1 條十位棒（綠色）！`;
+          
+          currA += uB;
+          currB -= uB;
+          renderBlocks('blocksA', currA);
+          renderBlocks('blocksB', currB);
+          document.getElementById('valA').innerText = currA.toLocaleString();
+          document.getElementById('valB').innerText = currB.toLocaleString();
+
+          setTimeout(step2_Tens, 1200);
+        });
+      };
+
+      // 步驟 2: 十位湊 100
+      const step2_Tens = () => {
+        const tB = Math.floor((currB % 100) / 10);
+        const tA = Math.floor((currA % 100) / 10);
+
+        if (tB === 0) {
+          exp.innerText = `【步驟 2：十位】右邊十位為 0，跳過十位，準備進行百位湊合...`;
+          if (currentMode === 100) {
+            setTimeout(() => showFinalResult(100), 800);
+          } else {
+            setTimeout(step3_Hundreds, 1000);
+          }
+          return;
+        }
+
+        exp.innerText = `【步驟 2：十位進位】右邊 ${tB} 條十位棒飛往左邊會合...`;
+
+        fly(document.querySelector('#blocksB .group-t'), document.querySelector('#blocksA .group-t'), () => {
+          exp.innerText = `【步驟 2：十位進位】十位滿 10 個十！自動進位成 1 個百板（藍色）！`;
+
+          currA += tB * 10;
+          currB -= tB * 10;
+          renderBlocks('blocksA', currA);
+          renderBlocks('blocksB', currB);
+          document.getElementById('valA').innerText = currA.toLocaleString();
+          document.getElementById('valB').innerText = currB.toLocaleString();
+
+          if (currentMode === 100) {
+            setTimeout(() => showFinalResult(100), 800);
+            return;
+          }
+
+          setTimeout(step3_Hundreds, 1200);
+        });
+      };
+
+      // 步驟 3: 百位湊 1000
+      const step3_Hundreds = () => {
+        const hB = Math.floor((currB % 1000) / 100);
+
+        if (hB === 0) {
+          exp.innerText = `【步驟 3：百位】右邊百位為 0，跳過百位，準備進行千位湊合...`;
+          if (currentMode === 1000) {
+            setTimeout(() => showFinalResult(1000), 800);
+          } else {
+            setTimeout(step4_Thousands, 1000);
+          }
+          return;
+        }
+
+        exp.innerText = `【步驟 3：百位進位】右邊 ${hB} 個百板飛往左邊會合...`;
+
+        fly(document.querySelector('#blocksB .group-h'), document.querySelector('#blocksA .group-h'), () => {
+          exp.innerText = `【步驟 3：百位進位】百位滿 10 個百！進位成 1 個千位正方體（紫色）！`;
+
+          currA += hB * 100;
+          currB -= hB * 100;
+          renderBlocks('blocksA', currA);
+          renderBlocks('blocksB', currB);
+          document.getElementById('valA').innerText = currA.toLocaleString();
+          document.getElementById('valB').innerText = currB.toLocaleString();
+
+          if (currentMode === 1000) {
+            setTimeout(() => showFinalResult(1000), 800);
+            return;
+          }
+
+          setTimeout(step4_Thousands, 1200);
+        });
+      };
+
+      // 步驟 4: 千位湊 10000
+      const step4_Thousands = () => {
+        const thB = Math.floor(currB / 1000);
+
+        if (thB === 0) {
+          setTimeout(() => showFinalResult(10000), 800);
+          return;
+        }
+
+        exp.innerText = `【步驟 4：千位進位】右邊 ${thB} 個千位體飛往左邊會合...`;
+
+        fly(document.querySelector('#blocksB .group-th'), document.querySelector('#blocksA .group-th'), () => {
+          exp.innerText = `【步驟 4：千位進位】10 個千位正方體組合為 1 個 3D 萬位巨型長方體（10,000）！`;
+          setTimeout(() => showFinalResult(10000), 800);
+        });
+      };
+
+      // 啟動連鎖第一步
+      step1_Units();
+    }
+
+    /* 最終成果展示 */
+    function showFinalResult(target) {
+      document.getElementById('boxA').style.display = 'none';
+      document.getElementById('boxB').style.display = 'none';
+
+      const center = document.getElementById('centerArea');
+      center.style.display = 'flex';
+      center.classList.remove('hidden');
+
+      if (target === 100) {
+        center.innerHTML = `
+          <div class="board-hundred scale-125 my-4"></div>
+          <h2 class="text-indigo-600 font-black text-xl md:text-2xl mt-4">10 個十 = 1 個百板 (100)！</h2>
+        `;
+        const b = center.querySelector('.board-hundred');
+        for (let i = 0; i < 100; i++) {
+          const s = document.createElement('div');
+          s.className = 'hundred-seg';
+          b.appendChild(s);
+        }
+      } else if (target === 1000) {
+        center.innerHTML = `
+          <div class="scale-125 my-6">${createThousandCube().outerHTML}</div>
+          <h2 class="text-purple-600 font-black text-xl md:text-2xl mt-4">10 個百 = 1 個千位大正方體 (1,000)！</h2>
+        `;
+      } else if (target === 10000) {
+        center.innerHTML = `
+          <div class="mega-10k-container">
+            <div class="mega-10k-block">
+              <div class="m-face mf-front"></div>
+              <div class="m-face mf-top"></div>
+              <div class="m-face mf-right"></div>
+            </div>
+          </div>
+          <h2 class="text-amber-600 font-black text-xl md:text-2xl mt-6">
+            10 個千位體 = 1 個 3D 萬位巨型長方體 (10,000)！
+          </h2>
+        `;
+
+        const front = center.querySelector('.mf-front');
+        const top = center.querySelector('.mf-top');
+        const right = center.querySelector('.mf-right');
+
+        for (let i = 0; i < 10; i++) {
+          const c1 = document.createElement('div');
+          c1.className = 'k-grid-cell';
+          c1.innerText = '1K';
+          front.appendChild(c1);
+
+          const c2 = document.createElement('div');
+          c2.className = 'k-grid-cell';
+          top.appendChild(c2);
+        }
+        for (let i = 0; i < 4; i++) {
+          const c3 = document.createElement('div');
+          c3.className = 'k-grid-cell';
+          right.appendChild(c3);
+        }
+      }
+
+      document.getElementById('btnCombine').classList.add('hidden');
+      document.getElementById('btnReset').classList.remove('hidden');
+      isAnimating = false;
+    }
+  </script>
+</body>
+</html>
