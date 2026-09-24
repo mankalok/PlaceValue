@@ -12,12 +12,12 @@
       -webkit-user-select: none;
     }
     body {
-      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "PingFang TC", "Microsoft JhengHei", sans-serif;
       background-color: #f0fdf4;
       touch-action: manipulation;
     }
 
-    /* 美化 Slider 控制條，方便 iPad 手指拖拉 */
+    /* 美化 Slider 控制條，方便手指與觸控板拖拉 */
     input[type=range] {
       -webkit-appearance: none;
       width: 100%;
@@ -28,20 +28,21 @@
     }
     input[type=range]::-webkit-slider-thumb {
       -webkit-appearance: none;
-      height: 28px;
-      width: 28px;
+      height: 32px;
+      width: 32px;
       border-radius: 50%;
       background: #4f46e5;
       cursor: pointer;
-      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
-      margin-top: -10px;
+      box-shadow: 0 3px 8px rgba(0,0,0,0.25);
+      margin-top: -12px;
+      border: 3px solid #ffffff;
     }
     input[type=range]::-webkit-slider-runnable-track {
       width: 100%;
-      height: 8px;
+      height: 10px;
       cursor: pointer;
       background: #cbd5e1;
-      border-radius: 4px;
+      border-radius: 5px;
     }
   </style>
 </head>
@@ -50,110 +51,126 @@
   <!-- 標題區 -->
   <header class="w-full max-w-2xl bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 mb-4 flex justify-between items-center">
     <div>
-      <h1 class="text-xl font-bold text-emerald-700">🧩 數學探險隊：誰多誰少？</h1>
-      <p class="text-xs text-slate-500 font-medium">動手拉拉條，看懂線段圖！</p>
+      <h1 class="text-2xl font-black text-emerald-700 tracking-wide">🧩 數學探險隊：誰多誰少？</h1>
+      <p class="text-sm text-slate-500 font-medium mt-0.5">觀念建立：先看誰多誰少，再拉線段圖！</p>
     </div>
-    <button onclick="newQuestion()" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-sm px-4 py-2 rounded-xl shadow transition">
-      🎲 換一題
+    <button onclick="newQuestion()" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-base px-4 py-2.5 rounded-xl shadow transition flex items-center gap-1.5 shrink-0">
+      <span>🎲</span> 換一題
     </button>
   </header>
 
-  <!-- 題目展示卡片 -->
-  <main class="w-full max-w-2xl bg-white rounded-2xl p-5 shadow-md border border-slate-200 flex flex-col gap-4">
+  <!-- 題目展示卡片 (字體加大) -->
+  <main class="w-full max-w-2xl bg-white rounded-2xl p-5 md:p-6 shadow-md border border-slate-200 flex flex-col gap-5">
     
-    <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 text-lg font-bold text-slate-800 leading-relaxed shadow-inner">
-      📌 <span id="qText">玩具店有兔子燈籠 95 個，比飛機燈籠少 18 個。飛機燈籠有多少個？</span>
+    <!-- 放大後的題目文字 -->
+    <div class="bg-amber-50/90 border-2 border-amber-300 rounded-2xl p-5 text-xl md:text-2xl font-black text-slate-800 leading-relaxed shadow-inner flex items-start gap-3">
+      <span class="text-2xl md:text-3xl shrink-0">📌</span>
+      <span id="qText" class="tracking-wide">玩具店有兔子燈籠 95 個，比飛機燈籠少 18 個。飛機燈籠有多少個？</span>
     </div>
 
     <!-- 視覺化長條圖比較區（分段式渲染） -->
-    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-4 relative">
-      <div class="flex justify-between items-center">
-        <span class="text-xs font-bold text-slate-400">📊 線段圖動手拉拉區</span>
-        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md" id="hintTag">👈 請拉動下方滑塊</span>
+    <div class="bg-slate-50 border border-slate-200 rounded-2xl p-4 md:p-5 flex flex-col gap-4 relative">
+      <div class="flex justify-between items-center border-b border-slate-200 pb-2">
+        <span class="text-sm font-bold text-slate-500">📊 線段圖動手拉拉區</span>
+        <span class="text-xs font-extrabold text-indigo-700 bg-indigo-100 px-3 py-1 rounded-full" id="hintTag">Step 0：請先回答下方問題</span>
       </div>
 
       <!-- 第一條棒 (基準項目 A) -->
-      <div class="flex items-center gap-2">
-        <div class="w-24 text-sm font-bold text-slate-700 text-right shrink-0" id="itemA_Name">兔子燈籠</div>
-        <div class="flex-1 bg-slate-200 h-10 rounded-lg overflow-hidden flex items-center relative">
-          <div id="barA" class="bg-rose-400 h-full rounded-lg flex items-center justify-end px-3 text-white font-bold text-sm transition-all duration-200" style="width: 60%;">
+      <div class="flex items-center gap-3">
+        <div class="w-28 text-base md:text-lg font-black text-slate-700 text-right shrink-0" id="itemA_Name">兔子燈籠</div>
+        <div class="flex-1 bg-slate-200 h-11 rounded-xl overflow-hidden flex items-center relative shadow-inner">
+          <div id="barA" class="bg-rose-400 h-full rounded-xl flex items-center justify-end px-3 text-white font-black text-sm md:text-base transition-all duration-200" style="width: 60%;">
             <span id="labelA">95 個</span>
           </div>
         </div>
       </div>
 
       <!-- 第二條棒 (待拉動項目 B：分為基準段 + 多出/少了段) -->
-      <div class="flex items-center gap-2">
-        <div class="w-24 text-sm font-bold text-slate-700 text-right shrink-0" id="itemB_Name">飛機燈籠</div>
-        <div class="flex-1 bg-slate-200 h-10 rounded-lg overflow-hidden flex items-center relative">
+      <div class="flex items-center gap-3">
+        <div class="w-28 text-base md:text-lg font-black text-slate-700 text-right shrink-0" id="itemB_Name">飛機燈籠</div>
+        <div class="flex-1 bg-slate-200 h-11 rounded-xl overflow-hidden flex items-center relative shadow-inner">
           <!-- B 基準段（固定的實線段） -->
-          <div id="barB_Base" class="bg-sky-400 h-full flex items-center justify-center text-white font-bold text-xs transition-all duration-75" style="width: 60%;">
+          <div id="barB_Base" class="bg-sky-400 h-full flex items-center justify-center text-white font-black text-xs md:text-sm transition-all duration-75" style="width: 60%;">
             <span id="labelB_Base">95 個</span>
           </div>
           <!-- B 變動段（拉長為實線，拉短為透明虛線） -->
-          <div id="barB_Diff" class="h-full flex items-center justify-center font-bold text-xs transition-all duration-75">
+          <div id="barB_Diff" class="h-full flex items-center justify-center font-black text-xs md:text-sm transition-all duration-75">
             <span id="labelB_Diff"></span>
           </div>
         </div>
       </div>
 
       <!-- 動態提示長度差距 -->
-      <div id="diffTag" class="text-center font-bold text-sm text-indigo-700 bg-indigo-100/60 py-1.5 rounded-lg">
+      <div id="diffTag" class="text-center font-bold text-sm md:text-base text-indigo-800 bg-indigo-100/70 py-2 rounded-xl border border-indigo-200/50">
         狀態：<span id="currentDiffValue">與兔子燈籠一樣多</span>
       </div>
-
     </div>
 
     <!-- 探討與引導問題區 -->
-    <div id="stepArea" class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-col gap-4">
+    <div id="stepArea" class="bg-indigo-50/70 border border-indigo-100 rounded-2xl p-4 md:p-5 flex flex-col gap-4">
       
+      <!-- 步驟 0：判斷誰多誰少 -->
+      <div id="step0">
+        <p class="font-extrabold text-indigo-950 text-lg mb-3 flex items-center gap-1.5">
+          <span>0️⃣</span> 先想一想：根據題目，哪個比較多？
+        </p>
+        <div class="grid grid-cols-2 gap-3">
+          <button onclick="checkStep0('A')" id="btnA" class="py-3.5 px-4 bg-white hover:bg-amber-50 border-2 border-indigo-200 hover:border-amber-400 text-indigo-900 font-black text-base md:text-lg rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2">
+            <span id="btnA_text">兔子燈籠 比較多</span>
+          </button>
+          <button onclick="checkStep0('B')" id="btnB" class="py-3.5 px-4 bg-white hover:bg-sky-50 border-2 border-indigo-200 hover:border-sky-400 text-indigo-900 font-black text-base md:text-lg rounded-xl shadow-sm active:scale-95 transition flex items-center justify-center gap-2">
+            <span id="btnB_text">飛機燈籠 比較多</span>
+          </button>
+        </div>
+      </div>
+
       <!-- 步驟 1：互動拖拉長條 -->
-      <div id="step1">
-        <p class="font-bold text-indigo-900 text-base mb-2">
-          1️⃣ 讀一讀：「<span class="text-rose-600" id="s1_itemA">兔子燈籠</span> 比 <span class="text-sky-600" id="s1_itemB">飛機燈籠</span> <span class="text-amber-600" id="s1_kw">少 18 個</span>。」<br>
-          👉 <span class="text-indigo-700">請動手拉動下面控制條，把「<span id="s1_dragTarget">飛機燈籠</span>」拉到正確長度：</span>
+      <div id="step1" class="hidden">
+        <p class="font-bold text-indigo-950 text-base md:text-lg mb-2 leading-relaxed">
+          1️⃣ 讚喔！我們知道「<span class="text-indigo-700 font-black" id="s1_moreName">飛機燈籠</span>」比較多！<br>
+          👉 <span class="text-indigo-800">請動手拉動下面控制條，把「<span id="s1_dragTarget" class="font-black text-sky-700">飛機燈籠</span>」拉到比「<span id="s1_refTarget" class="font-black text-rose-700">兔子燈籠</span>」<span id="s1_diffText" class="font-black text-amber-600">多 18 個</span>：</span>
         </p>
 
         <div class="flex flex-col gap-2 mt-3 px-2">
           <input type="range" id="barSlider" min="0" max="150" value="50" oninput="onSliderMove(this.value)">
-          <div class="flex justify-between text-xs font-bold text-slate-400 px-1">
+          <div class="flex justify-between text-xs md:text-sm font-extrabold text-slate-400 px-1">
             <span>◀ 拉短 (變少)</span>
             <span>拉長 (變多) ▶</span>
           </div>
         </div>
 
-        <button onclick="checkStep1()" class="w-full mt-3 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-base rounded-xl shadow transition">
+        <button onclick="checkStep1()" class="w-full mt-3 py-3.5 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-black text-lg rounded-xl shadow-md transition">
           🎯 我拉好了，檢查長度！
         </button>
       </div>
 
       <!-- 步驟 2：選擇加法或減法 -->
       <div id="step2" class="hidden">
-        <p class="font-bold text-indigo-900 text-base mb-2">
-          2️⃣ 看一看上面拉好的線段圖，<span id="targetItem">飛機燈籠</span>比較<span class="text-emerald-600 font-extrabold" id="targetType">長</span>，我們應該用什麼方法計算答案？
+        <p class="font-bold text-indigo-950 text-base md:text-lg mb-3">
+          2️⃣ 看一看上面拉好的線段圖，<span id="targetItem" class="font-black">飛機燈籠</span>比較<span class="text-emerald-600 font-black" id="targetType">長</span>，我們應該用什麼方法計算答案？
         </p>
-        <div class="flex gap-3">
-          <button onclick="checkStep2('+')" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1">
-            ➕ 加法 (求較長的部分)
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+          <button onclick="checkStep2('+')" class="py-3.5 bg-emerald-500 hover:bg-emerald-600 text-white font-black text-lg rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1">
+            ➕ 加法 (求比較長的部分)
           </button>
-          <button onclick="checkStep2('-')" class="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-lg rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1">
-            ➖ 減法 (求較短的部分)
+          <button onclick="checkStep2('-')" class="py-3.5 bg-rose-500 hover:bg-rose-600 text-white font-black text-lg rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1">
+            ➖ 減法 (求比較短的部分)
           </button>
         </div>
       </div>
 
       <!-- 步驟 3：填寫算式與解答 -->
       <div id="step3" class="hidden">
-        <p class="font-bold text-indigo-900 text-base mb-2">
+        <p class="font-bold text-indigo-950 text-base md:text-lg mb-3">
           3️⃣ 請寫出算式並算出答案：
         </p>
-        <div class="flex flex-wrap items-center justify-center gap-2 text-xl font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-200">
+        <div class="flex flex-wrap items-center justify-center gap-3 text-2xl md:text-3xl font-black text-slate-800 bg-white p-4 rounded-2xl border border-slate-200 shadow-sm">
           <span id="formulaA">95</span>
-          <span id="formulaOp" class="text-indigo-600 font-extrabold">+</span>
+          <span id="formulaOp" class="text-indigo-600 font-black">+</span>
           <span id="formulaB">18</span>
           <span>=</span>
-          <input type="number" id="userAns" class="w-24 p-1 text-center border-2 border-indigo-400 rounded-lg text-indigo-900 font-extrabold outline-none" placeholder="?">
-          <button onclick="checkStep3()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg shadow active:scale-95">
+          <input type="number" id="userAns" class="w-28 p-1.5 text-center border-2 border-indigo-400 rounded-xl text-indigo-950 font-black outline-none focus:ring-4 focus:ring-indigo-100" placeholder="?">
+          <button onclick="checkStep3()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-base font-black px-5 py-2.5 rounded-xl shadow active:scale-95 transition">
             檢查答案
           </button>
         </div>
@@ -162,19 +179,19 @@
     </div>
 
     <!-- 反饋訊息提示盒 -->
-    <div id="feedback" class="hidden p-3 rounded-xl font-bold text-center text-sm"></div>
+    <div id="feedback" class="hidden p-4 rounded-2xl font-black text-center text-base md:text-lg shadow-sm border transition-all"></div>
 
   </main>
 
   <script>
-    // 題庫資料
+    // 擴充題庫 (包含 10 題涵蓋「A比B少」與「A比B多」的小二數學題)
     const db = [
       {
         itemA: "兔子燈籠",
         itemB: "飛機燈籠",
         valA: 95,
         diff: 18,
-        relation: "less", // A 比 B 少 -> B 應該比 A 多
+        relation: "less", // A 比 B 少 -> B 比較多 (B = A + diff)
         unit: "個"
       },
       {
@@ -182,7 +199,7 @@
         itemB: "香蕉",
         valA: 42,
         diff: 15,
-        relation: "more", // A 比 B 多 -> B 應該比 A 少
+        relation: "more", // A 比 B 多 -> A 比較多 (B = A - diff)
         unit: "個"
       },
       {
@@ -190,14 +207,69 @@
         itemB: "紅組",
         valA: 64,
         diff: 27,
-        relation: "less", // A 比 B 少 -> B 應該比 A 多
+        relation: "less", // A 比 B 少 -> B 比較多
         unit: "分"
+      },
+      {
+        itemA: "小明貼紙",
+        itemB: "小華貼紙",
+        valA: 53,
+        diff: 16,
+        relation: "more", // A 比 B 多 -> A 比較多
+        unit: "張"
+      },
+      {
+        itemA: "故事書",
+        itemB: "漫畫書",
+        valA: 88,
+        diff: 25,
+        relation: "less", // A 比 B 少 -> B 比較多
+        unit: "本"
+      },
+      {
+        itemA: "鉛筆",
+        itemB: "原子筆",
+        valA: 76,
+        diff: 19,
+        relation: "more", // A 比 B 多 -> A 比較多
+        unit: "支"
+      },
+      {
+        itemA: "玩具車",
+        itemB: "積木組",
+        valA: 34,
+        diff: 28,
+        relation: "less", // A 比 B 少 -> B 比較多
+        unit: "盒"
+      },
+      {
+        itemA: "三級棒球隊",
+        itemB: "足球隊",
+        valA: 60,
+        diff: 14,
+        relation: "more", // A 比 B 多 -> A 比較多
+        unit: "人"
+      },
+      {
+        itemA: "草莓糖果",
+        itemB: "牛奶糖果",
+        valA: 105,
+        diff: 32,
+        relation: "less", // A 比 B 少 -> B 比較多
+        unit: "粒"
+      },
+      {
+        itemA: "紅花",
+        itemB: "黃花",
+        valA: 120,
+        diff: 35,
+        relation: "more", // A 比 B 多 -> A 比較多
+        unit: "朵"
       }
     ];
 
     let currentQIndex = 0;
     let currentQ = db[0];
-    
     let maxDisplayVal = 120;
     let currentBarBVal = 0;
 
@@ -209,12 +281,14 @@
       currentQIndex = index;
       currentQ = db[index];
 
-      // 重設 UI
-      document.getElementById('step1').classList.remove('hidden');
+      // 重設 UI 各步驟
+      document.getElementById('step0').classList.remove('hidden');
+      document.getElementById('step1').classList.add('hidden');
       document.getElementById('step2').classList.add('hidden');
       document.getElementById('step3').classList.add('hidden');
       document.getElementById('feedback').classList.add('hidden');
       document.getElementById('userAns').value = '';
+      document.getElementById('hintTag').innerText = "Step 0：請先回答下方問題";
 
       let kwText = currentQ.relation === 'less' ? '少' : '多';
       document.getElementById('qText').innerText = 
@@ -222,13 +296,13 @@
 
       document.getElementById('itemA_Name').innerText = currentQ.itemA;
       document.getElementById('itemB_Name').innerText = currentQ.itemB;
-      document.getElementById('s1_itemA').innerText = currentQ.itemA;
-      document.getElementById('s1_itemB').innerText = currentQ.itemB;
-      document.getElementById('s1_kw').innerText = `${kwText} ${currentQ.diff} ${currentQ.unit}`;
-      document.getElementById('s1_dragTarget').innerText = currentQ.itemB;
 
-      // 嚴格按真實比例：最大寬度基準
-      maxDisplayVal = Math.max(currentQ.valA + currentQ.diff + 35, 120);
+      // 設定 Step 0 按鈕文字
+      document.getElementById('btnA_text').innerText = `${currentQ.itemA} 比較多`;
+      document.getElementById('btnB_text').innerText = `${currentQ.itemB} 比較多`;
+
+      // 計算最大寬度基準
+      maxDisplayVal = Math.max(currentQ.valA + currentQ.diff + 40, 140);
 
       // 設定 A 棒（基準量）的比例
       let percentA = (currentQ.valA / maxDisplayVal) * 100;
@@ -237,8 +311,8 @@
 
       // Slider 設定：預設在與 A 相等的長度
       const slider = document.getElementById('barSlider');
-      slider.min = Math.max(10, currentQ.valA - 40);
-      slider.max = currentQ.valA + 40;
+      slider.min = Math.max(10, currentQ.valA - 50);
+      slider.max = currentQ.valA + 50;
       slider.value = currentQ.valA;
 
       onSliderMove(currentQ.valA);
@@ -257,27 +331,27 @@
       const labelB_Diff = document.getElementById('labelB_Diff');
 
       if (diffVal > 0) {
-        // 【拉長】：基準段保持 95 個實色，右側增加一段「實線」多出區
+        // 【拉長】：基準段保持實色，右側增加一段「實線」多出區
         barB_Base.style.width = basePercent + '%';
-        barB_Base.className = "bg-sky-400 h-full rounded-l-lg flex items-center justify-center text-white font-bold text-xs transition-all duration-75 border-r border-sky-300";
+        barB_Base.className = "bg-sky-400 h-full rounded-l-xl flex items-center justify-center text-white font-black text-xs md:text-sm transition-all duration-75 border-r border-sky-300";
         document.getElementById('labelB_Base').innerText = `${currentQ.valA} ${currentQ.unit}`;
 
         barB_Diff.style.width = absDiffPercent + '%';
-        barB_Diff.className = "bg-sky-300 h-full rounded-r-lg flex items-center justify-center text-sky-900 font-bold text-xs transition-all duration-75 border-l-2 border-dashed border-sky-600";
+        barB_Diff.className = "bg-sky-300 h-full rounded-r-xl flex items-center justify-center text-sky-950 font-black text-xs md:text-sm transition-all duration-75 border-l-2 border-dashed border-sky-600";
         labelB_Diff.innerText = `+ ${diffVal}`;
 
         document.getElementById('currentDiffValue').innerText = `比 ${currentQ.itemA}【多 ${diffVal} ${currentQ.unit}】`;
 
       } else if (diffVal < 0) {
-        // 【拉短】：基準段縮短，右側留下「透明虛線框」表示少的份額
+        // 【拉短】：基準段縮短，右側留下「透明虛線框」表示少了的份額
         let actualBasePercent = (currentBarBVal / maxDisplayVal) * 100;
         
         barB_Base.style.width = actualBasePercent + '%';
-        barB_Base.className = "bg-sky-400 h-full rounded-l-lg flex items-center justify-center text-white font-bold text-xs transition-all duration-75";
+        barB_Base.className = "bg-sky-400 h-full rounded-l-xl flex items-center justify-center text-white font-black text-xs md:text-sm transition-all duration-75";
         document.getElementById('labelB_Base').innerText = `${currentBarBVal} ${currentQ.unit}`;
 
         barB_Diff.style.width = absDiffPercent + '%';
-        barB_Diff.className = "bg-sky-100/60 border-2 border-dashed border-sky-400 h-full rounded-r-lg flex items-center justify-center text-sky-700 font-bold text-xs transition-all duration-75";
+        barB_Diff.className = "bg-sky-100/70 border-2 border-dashed border-sky-400 h-full rounded-r-xl flex items-center justify-center text-sky-800 font-black text-xs md:text-sm transition-all duration-75";
         labelB_Diff.innerText = `- ${Math.abs(diffVal)}`;
 
         document.getElementById('currentDiffValue').innerText = `比 ${currentQ.itemA}【少 ${Math.abs(diffVal)} ${currentQ.unit}】`;
@@ -285,13 +359,38 @@
       } else {
         // 【剛好一樣長】
         barB_Base.style.width = basePercent + '%';
-        barB_Base.className = "bg-sky-400 h-full rounded-lg flex items-center justify-center text-white font-bold text-xs transition-all duration-75";
+        barB_Base.className = "bg-sky-400 h-full rounded-xl flex items-center justify-center text-white font-black text-xs md:text-sm transition-all duration-75";
         document.getElementById('labelB_Base').innerText = `${currentQ.valA} ${currentQ.unit}`;
 
         barB_Diff.style.width = '0%';
         labelB_Diff.innerText = '';
 
         document.getElementById('currentDiffValue').innerText = `與 ${currentQ.itemA} 一樣多`;
+      }
+    }
+
+    /* 檢查步驟 0：判斷誰多誰少 */
+    function checkStep0(choice) {
+      // relation === 'less' 代表 A 比 B 少 -> B 比較多
+      // relation === 'more' 代表 A 比 B 多 -> A 比較多
+      let correctMoreItem = currentQ.relation === 'less' ? 'B' : 'A';
+      let moreName = currentQ.relation === 'less' ? currentQ.itemB : currentQ.itemA;
+      let lessName = currentQ.relation === 'less' ? currentQ.itemA : currentQ.itemB;
+
+      if (choice === correctMoreItem) {
+        showFeedback(`🎉 答對了！「${currentQ.itemA} 比 ${currentQ.itemB} ${currentQ.relation === 'less' ? '少' : '多'}」，所以【${moreName}】比較多！`, 'bg-emerald-100 border-emerald-300', 'text-emerald-900');
+        
+        // 設定 Step 1 的引導文字
+        document.getElementById('s1_moreName').innerText = moreName;
+        document.getElementById('s1_dragTarget').innerText = currentQ.itemB;
+        document.getElementById('s1_refTarget').innerText = currentQ.itemA;
+        document.getElementById('s1_diffText').innerText = `${currentQ.relation === 'less' ? '多' : '少'} ${currentQ.diff} ${currentQ.unit}`;
+
+        document.getElementById('step0').classList.add('hidden');
+        document.getElementById('step1').classList.remove('hidden');
+        document.getElementById('hintTag').innerText = "Step 1：請拉動下方滑塊";
+      } else {
+        showFeedback(`💭 再仔細讀一下題目：「${currentQ.itemA} 比 ${currentQ.itemB} ${currentQ.relation === 'less' ? '少' : '多'}」，想一想誰才是比較多的一方呢？`, 'bg-amber-100 border-amber-300', 'text-amber-900');
       }
     }
 
@@ -305,17 +404,20 @@
         onSliderMove(targetBVal);
 
         let moreItemName = currentQ.relation === 'less' ? currentQ.itemB : currentQ.itemA;
-        showFeedback(`🎉 太棒了！拉得很準確！「${currentQ.itemA}比${currentQ.itemB}${currentQ.relation === 'less' ? '少' : '多'}」，所以【${moreItemName}】的線段比較長！`, 'bg-emerald-100', 'text-emerald-800');
+        showFeedback(`🎯 長度拉得很精準！看線段圖就很清楚看到【${moreItemName}】比較長了！`, 'bg-emerald-100 border-emerald-300', 'text-emerald-900');
 
         let targetIsLonger = targetBVal > currentQ.valA;
         document.getElementById('targetItem').innerText = currentQ.itemB;
-        document.getElementById('targetType').innerText = targetIsLonger ? "較長" : "較短";
+        document.getElementById('targetType').innerText = targetIsLonger ? "長" : "短";
+        
+        document.getElementById('step1').classList.add('hidden');
         document.getElementById('step2').classList.remove('hidden');
+        document.getElementById('hintTag').innerText = "Step 2：選擇運算符號";
       } else {
         if (currentQ.relation === 'less') {
-          showFeedback(`💭 再想一想：題目說「${currentQ.itemA}比${currentQ.itemB}少 ${currentQ.diff}」，代表【${currentQ.itemB}】應該要比【${currentQ.itemA}】多 ${currentQ.diff} 喔！往右拉拉看！`, 'bg-amber-100', 'text-amber-800');
+          showFeedback(`💭 題目說「${currentQ.itemA}比${currentQ.itemB}少 ${currentQ.diff}」，所以【${currentQ.itemB}】要比【${currentQ.itemA}】多 ${currentQ.diff} 喔！請往右拉！`, 'bg-amber-100 border-amber-300', 'text-amber-900');
         } else {
-          showFeedback(`💭 再想一想：題目說「${currentQ.itemA}比${currentQ.itemB}多 ${currentQ.diff}」，代表【${currentQ.itemB}】應該要比【${currentQ.itemA}】少 ${currentQ.diff} 喔！往左拉拉看！`, 'bg-amber-100', 'text-amber-800');
+          showFeedback(`💭 題目說「${currentQ.itemA}比${currentQ.itemB}多 ${currentQ.diff}」，所以【${currentQ.itemB}】要比【${currentQ.itemA}】少 ${currentQ.diff} 喔！請往左拉！`, 'bg-amber-100 border-amber-300', 'text-amber-900');
         }
       }
     }
@@ -326,15 +428,18 @@
 
       if (op === correctOp) {
         let opName = op === '+' ? '加法' : '減法';
-        let reason = op === '+' ? '求比較長的部分，要在基礎上記上多出來的部分！' : '求比較短的部分，要從總長度扣除少掉的部分！';
-        showFeedback(`👍 完全正確！用 ${opName}：${reason}`, 'bg-emerald-100', 'text-emerald-800');
+        let reason = op === '+' ? '求比較長的部分，要在基礎上記上多出來的部分！' : '求比較短的部分，要從原本長度扣除少的份額！';
+        showFeedback(`👍 完全正確！使用 ${opName}：${reason}`, 'bg-emerald-100 border-emerald-300', 'text-emerald-900');
 
         document.getElementById('formulaA').innerText = currentQ.valA;
         document.getElementById('formulaOp').innerText = op;
         document.getElementById('formulaB').innerText = currentQ.diff;
+        
+        document.getElementById('step2').classList.add('hidden');
         document.getElementById('step3').classList.remove('hidden');
+        document.getElementById('hintTag').innerText = "Step 3：計算最終答案";
       } else {
-        showFeedback(`💡 想一想：我們現在要求的是比較【${op === '+' ? '短' : '長'}】的線段，應該用${correctOp === '+' ? '加法' : '減法'}才對喔！`, 'bg-rose-100', 'text-rose-800');
+        showFeedback(`💡 想一想：我們現在要求的【${currentQ.itemB}】線段是比較${correctOp === '+' ? '長' : '短'}的，應該用${correctOp === '+' ? '加法' : '減法'}喔！`, 'bg-rose-100 border-rose-300', 'text-rose-900');
       }
     }
 
@@ -344,15 +449,16 @@
       let correctAns = currentQ.relation === 'less' ? (currentQ.valA + currentQ.diff) : (currentQ.valA - currentQ.diff);
 
       if (userAns === correctAns) {
-        showFeedback(`🌟 太棒了！計算正確！${currentQ.itemB}共有 ${correctAns} ${currentQ.unit}！`, 'bg-emerald-500', 'text-white');
+        showFeedback(`🌟 完美通關！計算完全正確！${currentQ.itemB}共有 ${correctAns} ${currentQ.unit}！按下上方「🎲 換一題」繼續挑戰吧！`, 'bg-emerald-600 border-emerald-700', 'text-white');
+        document.getElementById('hintTag').innerText = "🎉 恭喜完成！";
       } else {
-        showFeedback(`❌ 答案不太對喔，再仔細算算看：${currentQ.valA} ${document.getElementById('formulaOp').innerText} ${currentQ.diff} 等於多少呢？`, 'bg-rose-100', 'text-rose-800');
+        showFeedback(`❌ 計算差了一點點喔，再仔細算算看：${currentQ.valA} ${document.getElementById('formulaOp').innerText} ${currentQ.diff} 等於多少呢？`, 'bg-rose-100 border-rose-300', 'text-rose-900');
       }
     }
 
     function showFeedback(msg, bgClass, textClass) {
       const fb = document.getElementById('feedback');
-      fb.className = `p-3 rounded-xl font-bold text-center text-sm transition-all ${bgClass} ${textClass}`;
+      fb.className = `p-4 rounded-2xl font-black text-center text-base md:text-lg shadow-sm border transition-all ${bgClass} ${textClass}`;
       fb.innerText = msg;
       fb.classList.remove('hidden');
     }
