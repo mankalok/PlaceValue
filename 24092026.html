@@ -1,0 +1,366 @@
+<!DOCTYPE html>
+<html lang="zh-HK">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>小二數學：線段圖比較與探討</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <style>
+    * {
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      background-color: #f0fdf4;
+      touch-action: manipulation;
+    }
+
+    /* 美化 Slider 控制條，方便 iPad 手指拖拉 */
+    input[type=range] {
+      -webkit-appearance: none;
+      width: 100%;
+      background: transparent;
+    }
+    input[type=range]:focus {
+      outline: none;
+    }
+    input[type=range]::-webkit-slider-thumb {
+      -webkit-appearance: none;
+      height: 28px;
+      width: 28px;
+      border-radius: 50%;
+      background: #4f46e5;
+      cursor: pointer;
+      box-shadow: 0 2px 6px rgba(0,0,0,0.3);
+      margin-top: -10px;
+    }
+    input[type=range]::-webkit-slider-runnable-track {
+      width: 100%;
+      height: 8px;
+      cursor: pointer;
+      background: #cbd5e1;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="flex flex-col items-center min-h-screen p-3 md:p-6 text-slate-800">
+
+  <!-- 標題區 -->
+  <header class="w-full max-w-2xl bg-white rounded-2xl p-4 shadow-sm border border-emerald-100 mb-4 flex justify-between items-center">
+    <div>
+      <h1 class="text-xl font-bold text-emerald-700">🧩 數學探險隊：誰多誰少？</h1>
+      <p class="text-xs text-slate-500 font-medium">動手拉拉條，看懂線段圖！</p>
+    </div>
+    <button onclick="newQuestion()" class="bg-emerald-500 hover:bg-emerald-600 active:scale-95 text-white font-bold text-sm px-4 py-2 rounded-xl shadow transition">
+      🎲 換一題
+    </button>
+  </header>
+
+  <!-- 題目展示卡片 -->
+  <main class="w-full max-w-2xl bg-white rounded-2xl p-5 shadow-md border border-slate-200 flex flex-col gap-4">
+    
+    <div class="bg-amber-50 border-2 border-amber-200 rounded-xl p-4 text-lg font-bold text-slate-800 leading-relaxed shadow-inner">
+      📌 <span id="qText">玩具店有兔子燈籠 95 個，比飛機燈籠少 18 個。飛機燈籠有多少個？</span>
+    </div>
+
+    <!-- 視覺化長條圖比較區（分段式渲染） -->
+    <div class="bg-slate-50 border border-slate-200 rounded-xl p-4 flex flex-col gap-4 relative">
+      <div class="flex justify-between items-center">
+        <span class="text-xs font-bold text-slate-400">📊 線段圖動手拉拉區</span>
+        <span class="text-xs font-bold text-indigo-600 bg-indigo-50 px-2 py-1 rounded-md" id="hintTag">👈 請拉動下方滑塊</span>
+      </div>
+
+      <!-- 第一條棒 (基準項目 A) -->
+      <div class="flex items-center gap-2">
+        <div class="w-24 text-sm font-bold text-slate-700 text-right shrink-0" id="itemA_Name">兔子燈籠</div>
+        <div class="flex-1 bg-slate-200 h-10 rounded-lg overflow-hidden flex items-center relative">
+          <div id="barA" class="bg-rose-400 h-full rounded-lg flex items-center justify-end px-3 text-white font-bold text-sm transition-all duration-200" style="width: 60%;">
+            <span id="labelA">95 個</span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 第二條棒 (待拉動項目 B：分為基準段 + 多出/少了段) -->
+      <div class="flex items-center gap-2">
+        <div class="w-24 text-sm font-bold text-slate-700 text-right shrink-0" id="itemB_Name">飛機燈籠</div>
+        <div class="flex-1 bg-slate-200 h-10 rounded-lg overflow-hidden flex items-center relative">
+          <!-- B 基準段（固定的實線段） -->
+          <div id="barB_Base" class="bg-sky-400 h-full flex items-center justify-center text-white font-bold text-xs transition-all duration-75" style="width: 60%;">
+            <span id="labelB_Base">95 個</span>
+          </div>
+          <!-- B 變動段（拉長為實線，拉短為透明虛線） -->
+          <div id="barB_Diff" class="h-full flex items-center justify-center font-bold text-xs transition-all duration-75">
+            <span id="labelB_Diff"></span>
+          </div>
+        </div>
+      </div>
+
+      <!-- 動態提示長度差距 -->
+      <div id="diffTag" class="text-center font-bold text-sm text-indigo-700 bg-indigo-100/60 py-1.5 rounded-lg">
+        狀態：<span id="currentDiffValue">與兔子燈籠一樣多</span>
+      </div>
+
+    </div>
+
+    <!-- 探討與引導問題區 -->
+    <div id="stepArea" class="bg-indigo-50 border border-indigo-100 rounded-xl p-4 flex flex-col gap-4">
+      
+      <!-- 步驟 1：互動拖拉長條 -->
+      <div id="step1">
+        <p class="font-bold text-indigo-900 text-base mb-2">
+          1️⃣ 讀一讀：「<span class="text-rose-600" id="s1_itemA">兔子燈籠</span> 比 <span class="text-sky-600" id="s1_itemB">飛機燈籠</span> <span class="text-amber-600" id="s1_kw">少 18 個</span>。」<br>
+          👉 <span class="text-indigo-700">請動手拉動下面控制條，把「<span id="s1_dragTarget">飛機燈籠</span>」拉到正確長度：</span>
+        </p>
+
+        <div class="flex flex-col gap-2 mt-3 px-2">
+          <input type="range" id="barSlider" min="0" max="150" value="50" oninput="onSliderMove(this.value)">
+          <div class="flex justify-between text-xs font-bold text-slate-400 px-1">
+            <span>◀ 拉短 (變少)</span>
+            <span>拉長 (變多) ▶</span>
+          </div>
+        </div>
+
+        <button onclick="checkStep1()" class="w-full mt-3 py-3 bg-indigo-600 hover:bg-indigo-700 active:scale-95 text-white font-bold text-base rounded-xl shadow transition">
+          🎯 我拉好了，檢查長度！
+        </button>
+      </div>
+
+      <!-- 步驟 2：選擇加法或減法 -->
+      <div id="step2" class="hidden">
+        <p class="font-bold text-indigo-900 text-base mb-2">
+          2️⃣ 看一看上面拉好的線段圖，<span id="targetItem">飛機燈籠</span>比較<span class="text-emerald-600 font-extrabold" id="targetType">長</span>，我們應該用什麼方法計算答案？
+        </p>
+        <div class="flex gap-3">
+          <button onclick="checkStep2('+')" class="flex-1 py-3 bg-emerald-500 hover:bg-emerald-600 text-white font-extrabold text-lg rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1">
+            ➕ 加法 (求較長的部分)
+          </button>
+          <button onclick="checkStep2('-')" class="flex-1 py-3 bg-rose-500 hover:bg-rose-600 text-white font-extrabold text-lg rounded-xl shadow active:scale-95 transition flex items-center justify-center gap-1">
+            ➖ 減法 (求較短的部分)
+          </button>
+        </div>
+      </div>
+
+      <!-- 步驟 3：填寫算式與解答 -->
+      <div id="step3" class="hidden">
+        <p class="font-bold text-indigo-900 text-base mb-2">
+          3️⃣ 請寫出算式並算出答案：
+        </p>
+        <div class="flex flex-wrap items-center justify-center gap-2 text-xl font-bold text-slate-700 bg-white p-3 rounded-xl border border-slate-200">
+          <span id="formulaA">95</span>
+          <span id="formulaOp" class="text-indigo-600 font-extrabold">+</span>
+          <span id="formulaB">18</span>
+          <span>=</span>
+          <input type="number" id="userAns" class="w-24 p-1 text-center border-2 border-indigo-400 rounded-lg text-indigo-900 font-extrabold outline-none" placeholder="?">
+          <button onclick="checkStep3()" class="bg-indigo-600 hover:bg-indigo-700 text-white text-sm font-bold px-4 py-2 rounded-lg shadow active:scale-95">
+            檢查答案
+          </button>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- 反饋訊息提示盒 -->
+    <div id="feedback" class="hidden p-3 rounded-xl font-bold text-center text-sm"></div>
+
+  </main>
+
+  <script>
+    // 題庫資料
+    const db = [
+      {
+        itemA: "兔子燈籠",
+        itemB: "飛機燈籠",
+        valA: 95,
+        diff: 18,
+        relation: "less", // A 比 B 少 -> B 應該比 A 多
+        unit: "個"
+      },
+      {
+        itemA: "蘋果",
+        itemB: "香蕉",
+        valA: 42,
+        diff: 15,
+        relation: "more", // A 比 B 多 -> B 應該比 A 少
+        unit: "個"
+      },
+      {
+        itemA: "藍組",
+        itemB: "紅組",
+        valA: 64,
+        diff: 27,
+        relation: "less", // A 比 B 少 -> B 應該比 A 多
+        unit: "分"
+      }
+    ];
+
+    let currentQIndex = 0;
+    let currentQ = db[0];
+    
+    let maxDisplayVal = 120;
+    let currentBarBVal = 0;
+
+    window.onload = function() {
+      loadQuestion(0);
+    };
+
+    function loadQuestion(index) {
+      currentQIndex = index;
+      currentQ = db[index];
+
+      // 重設 UI
+      document.getElementById('step1').classList.remove('hidden');
+      document.getElementById('step2').classList.add('hidden');
+      document.getElementById('step3').classList.add('hidden');
+      document.getElementById('feedback').classList.add('hidden');
+      document.getElementById('userAns').value = '';
+
+      let kwText = currentQ.relation === 'less' ? '少' : '多';
+      document.getElementById('qText').innerText = 
+        `${currentQ.itemA}有 ${currentQ.valA} ${currentQ.unit}，比${currentQ.itemB}${kwText} ${currentQ.diff} ${currentQ.unit}。${currentQ.itemB}有多少${currentQ.unit}？`;
+
+      document.getElementById('itemA_Name').innerText = currentQ.itemA;
+      document.getElementById('itemB_Name').innerText = currentQ.itemB;
+      document.getElementById('s1_itemA').innerText = currentQ.itemA;
+      document.getElementById('s1_itemB').innerText = currentQ.itemB;
+      document.getElementById('s1_kw').innerText = `${kwText} ${currentQ.diff} ${currentQ.unit}`;
+      document.getElementById('s1_dragTarget').innerText = currentQ.itemB;
+
+      // 嚴格按真實比例：最大寬度基準
+      maxDisplayVal = Math.max(currentQ.valA + currentQ.diff + 35, 120);
+
+      // 設定 A 棒（基準量）的比例
+      let percentA = (currentQ.valA / maxDisplayVal) * 100;
+      document.getElementById('barA').style.width = percentA + '%';
+      document.getElementById('labelA').innerText = `${currentQ.valA} ${currentQ.unit}`;
+
+      // Slider 設定：預設在與 A 相等的長度
+      const slider = document.getElementById('barSlider');
+      slider.min = Math.max(10, currentQ.valA - 40);
+      slider.max = currentQ.valA + 40;
+      slider.value = currentQ.valA;
+
+      onSliderMove(currentQ.valA);
+    }
+
+    /* 滑塊拖動邏輯：控制「實線延伸」與「透明虛線」 */
+    function onSliderMove(val) {
+      currentBarBVal = parseInt(val);
+      
+      let basePercent = (currentQ.valA / maxDisplayVal) * 100;
+      let diffVal = currentBarBVal - currentQ.valA;
+      let absDiffPercent = (Math.abs(diffVal) / maxDisplayVal) * 100;
+
+      const barB_Base = document.getElementById('barB_Base');
+      const barB_Diff = document.getElementById('barB_Diff');
+      const labelB_Diff = document.getElementById('labelB_Diff');
+
+      if (diffVal > 0) {
+        // 【拉長】：基準段保持 95 個實色，右側增加一段「實線」多出區
+        barB_Base.style.width = basePercent + '%';
+        barB_Base.className = "bg-sky-400 h-full rounded-l-lg flex items-center justify-center text-white font-bold text-xs transition-all duration-75 border-r border-sky-300";
+        document.getElementById('labelB_Base').innerText = `${currentQ.valA} ${currentQ.unit}`;
+
+        barB_Diff.style.width = absDiffPercent + '%';
+        barB_Diff.className = "bg-sky-300 h-full rounded-r-lg flex items-center justify-center text-sky-900 font-bold text-xs transition-all duration-75 border-l-2 border-dashed border-sky-600";
+        labelB_Diff.innerText = `+ ${diffVal}`;
+
+        document.getElementById('currentDiffValue').innerText = `比 ${currentQ.itemA}【多 ${diffVal} ${currentQ.unit}】`;
+
+      } else if (diffVal < 0) {
+        // 【拉短】：基準段縮短，右側留下「透明虛線框」表示少的份額
+        let actualBasePercent = (currentBarBVal / maxDisplayVal) * 100;
+        
+        barB_Base.style.width = actualBasePercent + '%';
+        barB_Base.className = "bg-sky-400 h-full rounded-l-lg flex items-center justify-center text-white font-bold text-xs transition-all duration-75";
+        document.getElementById('labelB_Base').innerText = `${currentBarBVal} ${currentQ.unit}`;
+
+        barB_Diff.style.width = absDiffPercent + '%';
+        barB_Diff.className = "bg-sky-100/60 border-2 border-dashed border-sky-400 h-full rounded-r-lg flex items-center justify-center text-sky-700 font-bold text-xs transition-all duration-75";
+        labelB_Diff.innerText = `- ${Math.abs(diffVal)}`;
+
+        document.getElementById('currentDiffValue').innerText = `比 ${currentQ.itemA}【少 ${Math.abs(diffVal)} ${currentQ.unit}】`;
+
+      } else {
+        // 【剛好一樣長】
+        barB_Base.style.width = basePercent + '%';
+        barB_Base.className = "bg-sky-400 h-full rounded-lg flex items-center justify-center text-white font-bold text-xs transition-all duration-75";
+        document.getElementById('labelB_Base').innerText = `${currentQ.valA} ${currentQ.unit}`;
+
+        barB_Diff.style.width = '0%';
+        labelB_Diff.innerText = '';
+
+        document.getElementById('currentDiffValue').innerText = `與 ${currentQ.itemA} 一樣多`;
+      }
+    }
+
+    /* 檢查步驟 1 */
+    function checkStep1() {
+      let targetBVal = currentQ.relation === 'less' 
+        ? (currentQ.valA + currentQ.diff) 
+        : (currentQ.valA - currentQ.diff);
+
+      if (Math.abs(currentBarBVal - targetBVal) <= 3) {
+        onSliderMove(targetBVal);
+
+        let moreItemName = currentQ.relation === 'less' ? currentQ.itemB : currentQ.itemA;
+        showFeedback(`🎉 太棒了！拉得很準確！「${currentQ.itemA}比${currentQ.itemB}${currentQ.relation === 'less' ? '少' : '多'}」，所以【${moreItemName}】的線段比較長！`, 'bg-emerald-100', 'text-emerald-800');
+
+        let targetIsLonger = targetBVal > currentQ.valA;
+        document.getElementById('targetItem').innerText = currentQ.itemB;
+        document.getElementById('targetType').innerText = targetIsLonger ? "較長" : "較短";
+        document.getElementById('step2').classList.remove('hidden');
+      } else {
+        if (currentQ.relation === 'less') {
+          showFeedback(`💭 再想一想：題目說「${currentQ.itemA}比${currentQ.itemB}少 ${currentQ.diff}」，代表【${currentQ.itemB}】應該要比【${currentQ.itemA}】多 ${currentQ.diff} 喔！往右拉拉看！`, 'bg-amber-100', 'text-amber-800');
+        } else {
+          showFeedback(`💭 再想一想：題目說「${currentQ.itemA}比${currentQ.itemB}多 ${currentQ.diff}」，代表【${currentQ.itemB}】應該要比【${currentQ.itemA}】少 ${currentQ.diff} 喔！往左拉拉看！`, 'bg-amber-100', 'text-amber-800');
+        }
+      }
+    }
+
+    /* 檢查步驟 2 */
+    function checkStep2(op) {
+      let correctOp = currentQ.relation === 'less' ? '+' : '-';
+
+      if (op === correctOp) {
+        let opName = op === '+' ? '加法' : '減法';
+        let reason = op === '+' ? '求比較長的部分，要在基礎上記上多出來的部分！' : '求比較短的部分，要從總長度扣除少掉的部分！';
+        showFeedback(`👍 完全正確！用 ${opName}：${reason}`, 'bg-emerald-100', 'text-emerald-800');
+
+        document.getElementById('formulaA').innerText = currentQ.valA;
+        document.getElementById('formulaOp').innerText = op;
+        document.getElementById('formulaB').innerText = currentQ.diff;
+        document.getElementById('step3').classList.remove('hidden');
+      } else {
+        showFeedback(`💡 想一想：我們現在要求的是比較【${op === '+' ? '短' : '長'}】的線段，應該用${correctOp === '+' ? '加法' : '減法'}才對喔！`, 'bg-rose-100', 'text-rose-800');
+      }
+    }
+
+    /* 檢查步驟 3 */
+    function checkStep3() {
+      let userAns = parseInt(document.getElementById('userAns').value);
+      let correctAns = currentQ.relation === 'less' ? (currentQ.valA + currentQ.diff) : (currentQ.valA - currentQ.diff);
+
+      if (userAns === correctAns) {
+        showFeedback(`🌟 太棒了！計算正確！${currentQ.itemB}共有 ${correctAns} ${currentQ.unit}！`, 'bg-emerald-500', 'text-white');
+      } else {
+        showFeedback(`❌ 答案不太對喔，再仔細算算看：${currentQ.valA} ${document.getElementById('formulaOp').innerText} ${currentQ.diff} 等於多少呢？`, 'bg-rose-100', 'text-rose-800');
+      }
+    }
+
+    function showFeedback(msg, bgClass, textClass) {
+      const fb = document.getElementById('feedback');
+      fb.className = `p-3 rounded-xl font-bold text-center text-sm transition-all ${bgClass} ${textClass}`;
+      fb.innerText = msg;
+      fb.classList.remove('hidden');
+    }
+
+    function newQuestion() {
+      let nextIndex = (currentQIndex + 1) % db.length;
+      loadQuestion(nextIndex);
+    }
+  </script>
+</body>
+</html>
